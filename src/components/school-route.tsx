@@ -6,7 +6,7 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { schoolPath } from "@/lib/slug";
 
-/** "School not found" — the /<slug> in the URL has no school. */
+/** "School not found" - the /<slug> in the URL has no school. */
 export function SchoolNotFound({ slug }: { slug: string }) {
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-12">
@@ -66,7 +66,7 @@ function WrongSchool({ slug, ownSchoolId }: { slug: string; ownSchoolId: string 
 /** Guard for every /<slug>/… workspace page: the slug must be a real
  *  school, and a signed-in school user may only open their own
  *  school's path. The platform owner may open any school's path.
- *  RLS (migration 0002) is the backstop — this is the page the user
+ *  RLS (migration 0002) is the backstop - this is the page the user
  *  sees instead of an empty portal. */
 export function SchoolWorkspace({
   slug,
