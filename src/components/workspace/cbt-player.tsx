@@ -33,7 +33,7 @@ type Attempt = {
 
 /** CBT practice mode (cbt_tests / cbt_questions / cbt_attempts).
  *  Practice only: timed, auto-marked, retakes allowed, and a practice
- *  attempt never counts as a grade — counted_as stays empty unless a
+ *  attempt never counts as a grade - counted_as stays empty unless a
  *  teacher later counts a graded test into Scores. */
 export default function CbtPlayer({
   schoolId,
@@ -85,7 +85,7 @@ export default function CbtPlayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId, studentId, classId]);
 
-  // Countdown — auto-submits at zero.
+  // Countdown - auto-submits at zero.
   useEffect(() => {
     if (secondsLeft === null || !active) return;
     if (secondsLeft <= 0) {
@@ -108,7 +108,7 @@ export default function CbtPlayer({
       options: Array.isArray(q.options) ? q.options : [],
     }));
     if (list.length === 0) {
-      setMsg("This practice test has no questions yet — ask your teacher.");
+      setMsg("This practice test has no questions yet - ask your teacher.");
       return;
     }
     setActive(test);
@@ -176,7 +176,7 @@ export default function CbtPlayer({
           </span>
         </div>
         <p className="mb-4 text-xs text-slate-500">
-          Practice mode — this score does not count as a grade. You can retake it as many times as you like.
+          Practice mode - this score does not count as a grade. You can retake it as many times as you like.
         </p>
         <ol className="space-y-4">
           {questions.map((q, i) => (
@@ -207,12 +207,12 @@ export default function CbtPlayer({
     <Card>
       <h2 className="mb-1 font-semibold">CBT Practice</h2>
       <p className="mb-3 text-sm text-slate-500">
-        Timed, auto-marked practice. Retakes allowed — practice never counts as a grade.
+        Timed, auto-marked practice. Retakes allowed - practice never counts as a grade.
       </p>
       {msg && <p className="mb-3 text-sm font-medium text-royal">{msg}</p>}
       {result && (
         <p className="mb-3 rounded-lg bg-green-50 px-3 py-2 text-sm font-semibold text-green-700">
-          Your score: {result.score} / {result.total} ({result.pct}% — grade {gradeFor(result.pct)}). Well done — try again to beat it.
+          Your score: {result.score} / {result.total} ({result.pct}% - grade {gradeFor(result.pct)}). Well done - try again to beat it.
         </p>
       )}
       {tests.length === 0 ? (
@@ -231,7 +231,7 @@ export default function CbtPlayer({
                     {t.subject_id ? subjectNames[t.subject_id] ?? "" : ""} ·{" "}
                     {t.time_limit_minutes ? `${t.time_limit_minutes} minutes` : "No time limit"}
                     {t.due_date ? ` · Due ${t.due_date}` : ""}
-                    {best ? ` · Best so far: ${best.percentage}% (${best.grade ?? "—"})` : ""}
+                    {best ? ` · Best so far: ${best.percentage}% (${best.grade ?? "-"})` : ""}
                   </span>
                 </span>
                 <button className={btnCls} onClick={() => start(t)}>Start</button>
@@ -246,7 +246,7 @@ export default function CbtPlayer({
           <ul className="space-y-1 text-sm text-slate-600">
             {attempts.slice(0, 8).map((a) => (
               <li key={a.id}>
-                {tests.find((t) => t.id === a.test_id)?.title ?? "Test"} — {a.score}/{a.total} ({a.percentage}%, {a.grade ?? "—"}) · {new Date(a.submitted_at).toLocaleDateString()}
+                {tests.find((t) => t.id === a.test_id)?.title ?? "Test"} - {a.score}/{a.total} ({a.percentage}%, {a.grade ?? "-"}) · {new Date(a.submitted_at).toLocaleDateString()}
               </li>
             ))}
           </ul>
