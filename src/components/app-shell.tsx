@@ -7,6 +7,7 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import type { School } from "@/lib/types";
 import { ThemeToggle } from "@/components/theme";
+import { SchoolLogo } from "@/components/school-logo";
 
 const SCHOOL_NAV = [
   { href: "/", label: "Overview" },
@@ -48,9 +49,13 @@ function isPublic(pathname: string) {
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { loading, user, profile, isOwner, ownerSchoolId, setOwnerSchoolId, signOut } =
+  const { loading, user, profile, isOwner, ownerSchoolId, setOwnerSchoolId, signOut, schoolId } =
     useAuth();
   const [schools, setSchools] = useState<School[]>([]);
+  // The school whose portal this is — its logo brands the header for
+  // every user of that school. Mother Board pages keep the platform
+  // branding instead (see below).
+  const [currentSchool, setCurrentSchool] = useState<School | null>(null);
 
   const authed = isSupabaseConfigured;
 
@@ -65,6 +70,32 @@ export default function AppShell({ children }: { children: ReactNode }) {
       setSchools((data as School[]) ?? []);
     })();
   }, [authed, loading, user, isOwner]);
+
+  // Load the current school's branding (logo) for the school workspace.
+  useEffect(() => {
+    if (!authed || loading || !user || !profile) {
+      setCurrentSchool(null);
+      return;
+    }
+    const id = profile.school_id ?? ownerSchoolId ?? null;
+    if (!id || isPublic(pathname) || pathname.startsWith("/mother-board")) {
+      setCurrentSchool(null);
+      return;
+    }
+    let alive = true;
+    (async () => {
+      const { data } = await supabase
+        .from("schools")
+        .select("id, name, motto, logo_url")
+        .eq("id", id)
+        .maybeSingle();
+      if (alive) setCurrentSchool((data as School | null) ?? null);
+    })();
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authed, loading, user, profile, ownerSchoolId, pathname]);
 
   useEffect(() => {
     if (!authed || loading || isPublic(pathname)) return;
@@ -205,12 +236,22 @@ export default function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <aside className="hidden w-64 shrink-0 flex-col overflow-y-auto bg-royal-deep p-5 text-white md:flex">
-        <div className="mb-6">
-          <p className="text-xl font-bold leading-tight">Digital SchoolVerse</p>
-          <p className="mt-1 text-xs text-skybrand">
-            Primary &amp; Secondary School Portal
-          </p>
-        </div>
+        {inMotherBoard || !currentSchool ? (
+          <div className="mb-6">
+            <p className="text-xl font-bold leading-tight">Digital SchoolVerse</p>
+            <p className="mt-1 text-xs text-skybrand">
+              Primary &amp; Secondary School Portal
+            </p>
+          </div>
+        ) : (
+          <div className="mb-6 flex items-center gap-3">
+            <SchoolLogo name={currentSchool.name} logoUrl={currentSchool.logo_url} size={44} />
+            <div className="min-w-0">
+              <p className="truncate text-lg font-bold leading-tight">{currentSchool.name}</p>
+              <p className="mt-0.5 text-xs text-skybrand">Digital SchoolVerse</p>
+            </div>
+          </div>
+        )}
 
         {isOwner && (
           <div className="mb-6">
@@ -261,7 +302,14 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="border-b border-line bg-white px-4 py-3 md:hidden">
           <div className="flex items-center justify-between">
-            <p className="font-bold text-royal">Digital SchoolVerse</p>
+            {inMotherBoard || !currentSchool ? (
+              <p className="font-bold text-royal">Digital SchoolVerse</p>
+            ) : (
+              <span className="flex items-center gap-2">
+                <SchoolLogo name={currentSchool.name} logoUrl={currentSchool.logo_url} size={28} />
+                <span className="font-bold text-royal">{currentSchool.name}</span>
+              </span>
+            )}
             <ThemeToggle />
           </div>
           <nav className="mt-2 flex gap-3 overflow-x-auto text-sm">
