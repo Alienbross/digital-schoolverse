@@ -57,6 +57,21 @@ export default function Teachers() {
     load();
   };
 
+  const toggleSenior = async (t: Teacher, value: boolean) => {
+    const { error } = await supabase
+      .from("teachers")
+      .update({ can_approve_parents: value })
+      .eq("id", t.id);
+    setMsg(
+      error
+        ? `Could not change: ${error.message}`
+        : value
+          ? `${t.first_name} ${t.last_name} is now senior staff and can approve parent registrations.`
+          : `${t.first_name} ${t.last_name} can no longer approve parent registrations.`,
+    );
+    if (!error) load();
+  };
+
   return (
     <div>
       <ConfigBanner />
@@ -86,11 +101,25 @@ export default function Teachers() {
         </Card>
         <Card>
           <h2 className="mb-3 font-semibold">Register ({teachers.length})</h2>
+          <p className="mb-3 text-sm text-slate-500">
+            Senior staff can approve parent registrations (and see pending
+            parents in their workspace). The school admin approves teachers
+            and can approve anyone.
+          </p>
           <ul className="space-y-2 text-sm">
             {teachers.map((t) => (
               <li key={t.id} className="rounded-lg bg-mist px-3 py-2">
                 <strong>{t.first_name} {t.last_name}</strong> · {t.role}
                 <span className="block text-xs text-slate-500">{t.email ?? "—"} · {t.phone ?? "—"}</span>
+                <label className="mt-1 flex items-center gap-2 text-xs font-semibold text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={!!t.can_approve_parents}
+                    disabled={readOnly}
+                    onChange={(e) => toggleSenior(t, e.target.checked)}
+                  />
+                  Senior staff — can approve parent registrations
+                </label>
               </li>
             ))}
             {teachers.length === 0 && <li className="text-slate-400">Nobody yet.</li>}
