@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { useAuth, useCanManage } from "@/lib/auth";
 import { Card, ConfigBanner, PageHeader } from "@/components/ui";
 
 type Counts = {
@@ -16,6 +17,8 @@ type Counts = {
 };
 
 export default function Overview() {
+  const { schoolId, profile, loading: authLoading } = useAuth();
+  const canManage = useCanManage();
   const [counts, setCounts] = useState<Counts>({
     schools: 0,
     classes: 0,
@@ -28,7 +31,7 @@ export default function Overview() {
   const [schoolName, setSchoolName] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured || authLoading) return;
     (async () => {
       const tables: (keyof Counts)[] = [
         "schools",
@@ -41,22 +44,26 @@ export default function Overview() {
       ];
       const next: Counts = { ...counts };
       for (const t of tables) {
-        const { count } = await supabase
-          .from(t)
-          .select("*", { count: "exact", head: true });
+        let q = supabase.from(t).select("*", { count: "exact", head: true });
+        // School users see only their school; the platform owner sees all
+        // (or the school they picked in the header).
+        if (schoolId && t !== "schools") q = q.eq("school_id", schoolId);
+        if (schoolId && t === "schools") q = q.eq("id", schoolId);
+        const { count } = await q;
         next[t] = count ?? 0;
       }
       setCounts(next);
-      const { data } = await supabase
+      let schoolQuery = supabase
         .from("schools")
         .select("name")
         .order("created_at", { ascending: true })
-        .limit(1)
-        .single();
+        .limit(1);
+      if (schoolId) schoolQuery = supabase.from("schools").select("name").eq("id", schoolId);
+      const { data } = await schoolQuery.single();
       if (data) setSchoolName(data.name);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading, schoolId]);
 
   const steps = [
     { label: "Add your school profile", done: counts.schools > 0, href: "/setup" },
@@ -80,6 +87,12 @@ export default function Overview() {
   return (
     <div>
       <ConfigBanner />
+      {profile && !canManage && (
+        <div className="mb-4 rounded-xl border border-skybrand/40 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          Signed in as {profile.role.replace("_", " ")} — this is a read-only
+          view for now. Your full dashboard is coming next.
+        </div>
+      )}
       <PageHeader
         title={schoolName ? `Welcome — ${schoolName}` : "Welcome to Digital SchoolVerse"}
         sub="Foundation + Admin core. Basics first — Advanced features live behind the paywall."
