@@ -101,6 +101,39 @@ export default function Setup() {
     load();
   };
 
+  // Registration phases (migration 0006): open teachers, then
+  // students, then parents — or all three at once.
+  const togglePhase = async (
+    role: "teacher" | "student" | "parent",
+    open: boolean,
+  ) => {
+    if (!school) return;
+    setBusy(true);
+    const { error } = await supabase
+      .from("schools")
+      .update({ [`reg_${role}_open`]: open })
+      .eq("id", school.id);
+    setMsg(
+      error
+        ? `Could not change: ${error.message}`
+        : `${role[0].toUpperCase() + role.slice(1)} registration ${open ? "opened" : "closed"}.`,
+    );
+    setBusy(false);
+    load();
+  };
+
+  const openAllPhases = async () => {
+    if (!school) return;
+    setBusy(true);
+    const { error } = await supabase
+      .from("schools")
+      .update({ reg_teacher_open: true, reg_student_open: true, reg_parent_open: true })
+      .eq("id", school.id);
+    setMsg(error ? `Could not change: ${error.message}` : "All three registration phases opened.");
+    setBusy(false);
+    load();
+  };
+
   return (
     <div>
       <ConfigBanner />
@@ -112,6 +145,57 @@ export default function Setup() {
       )}
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
       <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <h2 className="mb-3 font-semibold">Registration phases</h2>
+          <p className="mb-3 text-sm text-slate-500">
+            Open registration in order — teachers first, then students, then
+            parents — so pupils exist before parents link them. You can also
+            open all three at once. A closed phase shows “not open yet” on
+            its register page at{" "}
+            <span className="font-semibold text-ink">
+              /{school?.slug ?? "your-school"}/register
+            </span>
+            .
+          </p>
+          {school ? (
+            <div className="space-y-2">
+              {(["teacher", "student", "parent"] as const).map((role) => {
+                const key = `reg_${role}_open` as const;
+                const open = !!school[key];
+                return (
+                  <div key={role} className="flex items-center justify-between rounded-lg bg-mist px-3 py-2 text-sm">
+                    <span>
+                      <strong className="capitalize">{role}</strong> registration{" "}
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${open ? "bg-green-100 text-green-700" : "bg-slate-200 text-slate-600"}`}>
+                        {open ? "Open" : "Closed"}
+                      </span>
+                    </span>
+                    <button
+                      className="font-semibold text-royal"
+                      disabled={busy || readOnly}
+                      onClick={() => togglePhase(role, !open)}
+                    >
+                      {open ? "Close" : "Open"}
+                    </button>
+                  </div>
+                );
+              })}
+              <button
+                className="mt-1 rounded-lg border border-line px-4 py-2 text-sm font-semibold"
+                disabled={busy || readOnly}
+                onClick={openAllPhases}
+              >
+                Open all three phases
+              </button>
+              <p className="text-xs text-slate-400">
+                Pending accounts are decided under Registration &amp; Approvals
+                in the sidebar.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">Save the school profile first.</p>
+          )}
+        </Card>
         <Card>
           <h2 className="mb-3 font-semibold">School profile</h2>
           {school ? (
