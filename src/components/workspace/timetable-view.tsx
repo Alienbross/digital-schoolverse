@@ -78,7 +78,7 @@ export default function TimetableView({
     <Card>
       {slots.length === 0 ? (
         <p className="text-sm text-slate-500">
-          No timetable slots saved for {classIds.length === 1 ? "this class" : "these classes"} yet — the school admin sets the weekly timetable.
+          No timetable slots saved for {classIds.length === 1 ? "this class" : "these classes"} yet - the school admin sets the weekly timetable.
         </p>
       ) : (
         <div className="overflow-x-auto">
@@ -108,10 +108,10 @@ export default function TimetableView({
                     return (
                       <td key={day} className="border border-line px-2 py-2 align-top">
                         {cell.length === 0
-                          ? "—"
+                          ? "-"
                           : cell.map((s) => (
                               <p key={s.id} className="mb-1">
-                                <strong>{s.subject_id ? subjects[s.subject_id] ?? "—" : "—"}</strong>
+                                <strong>{s.subject_id ? subjects[s.subject_id] ?? "-" : "-"}</strong>
                                 <span className="block text-xs text-slate-500">
                                   {classIds.length > 1 ? `${classNames[s.class_id] ?? ""} · ` : ""}
                                   {s.teacher_id ? `${teacherNames[s.teacher_id] ?? ""}` : ""}
