@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { useAuth, useCanManage } from "@/lib/auth";
 import type { School, Term } from "@/lib/types";
 import {
   btnCls,
@@ -13,6 +14,11 @@ import {
 } from "@/components/ui";
 
 export default function Setup() {
+  const { schoolId, profile, loading: authLoading } = useAuth();
+  const canManage = useCanManage();
+  // No profile yet (Supabase not configured / not signed in) means the
+  // old pilot behaviour; a signed-in teacher/student/parent is read-only.
+  const readOnly = !!profile && !canManage;
   const [school, setSchool] = useState<School | null>(null);
   const [terms, setTerms] = useState<Term[]>([]);
   const [name, setName] = useState("");
@@ -25,12 +31,15 @@ export default function Setup() {
   const [msg, setMsg] = useState("");
 
   const load = async () => {
-    const { data: s } = await supabase
-      .from("schools")
-      .select("*")
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .single();
+    const schoolQuery = schoolId
+      ? supabase.from("schools").select("*").eq("id", schoolId).single()
+      : supabase
+          .from("schools")
+          .select("*")
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .single();
+    const { data: s } = await schoolQuery;
     if (s) {
       setSchool(s);
       setName(s.name);
@@ -38,17 +47,17 @@ export default function Setup() {
       setEmail(s.email ?? "");
       setPhone(s.phone ?? "");
     }
-    const { data: t } = await supabase
-      .from("terms")
-      .select("*")
-      .order("created_at", { ascending: true });
+    let termsQuery = supabase.from("terms").select("*").order("created_at", { ascending: true });
+    if (schoolId) termsQuery = termsQuery.eq("school_id", schoolId);
+    else if (s) termsQuery = termsQuery.eq("school_id", s.id);
+    const { data: t } = await termsQuery;
     setTerms(t ?? []);
   };
 
   useEffect(() => {
-    if (isSupabaseConfigured) load();
+    if (isSupabaseConfigured && !authLoading) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading, schoolId]);
 
   const saveSchool = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +102,11 @@ export default function Setup() {
     <div>
       <ConfigBanner />
       <PageHeader title="School Setup" sub="School profile, sessions and terms." />
+      {profile && !canManage && (
+        <div className="mb-4 rounded-xl border border-skybrand/40 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          Signed in as {profile.role.replace("_", " ")} — read-only view.
+        </div>
+      )}
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -102,7 +116,7 @@ export default function Setup() {
             <div><label className={labelCls}>Motto</label><input className={inputCls} value={motto} onChange={(e) => setMotto(e.target.value)} /></div>
             <div><label className={labelCls}>Email</label><input className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} /></div>
             <div><label className={labelCls}>Phone</label><input className={inputCls} value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
-            <button className={btnCls} disabled={busy || !isSupabaseConfigured}>Save school</button>
+            <button className={btnCls} disabled={busy || !isSupabaseConfigured || readOnly}>Save school</button>
           </form>
         </Card>
         <Card>
@@ -110,7 +124,7 @@ export default function Setup() {
           <form onSubmit={addTerm} className="mb-4 flex gap-2">
             <input className={inputCls} value={session} onChange={(e) => setSession(e.target.value)} placeholder="2026/2027" />
             <input className={inputCls} value={termName} onChange={(e) => setTermName(e.target.value)} placeholder="First Term" />
-            <button className={btnCls} disabled={busy || !isSupabaseConfigured}>Add</button>
+            <button className={btnCls} disabled={busy || !isSupabaseConfigured || readOnly}>Add</button>
           </form>
           <ul className="space-y-2 text-sm">
             {terms.map((t) => (
