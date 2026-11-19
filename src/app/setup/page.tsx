@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth, useCanManage } from "@/lib/auth";
+import { LogoUploadField } from "@/components/school-logo";
 import type { School, Term } from "@/lib/types";
 import {
   btnCls,
@@ -20,6 +21,7 @@ export default function Setup() {
   // old pilot behaviour; a signed-in teacher/student/parent is read-only.
   const readOnly = !!profile && !canManage;
   const [school, setSchool] = useState<School | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [terms, setTerms] = useState<Term[]>([]);
   const [name, setName] = useState("");
   const [motto, setMotto] = useState("");
@@ -46,6 +48,7 @@ export default function Setup() {
       setMotto(s.motto ?? "");
       setEmail(s.email ?? "");
       setPhone(s.phone ?? "");
+      setLogoUrl(s.logo_url ?? null);
     }
     let termsQuery = supabase.from("terms").select("*").order("created_at", { ascending: true });
     if (schoolId) termsQuery = termsQuery.eq("school_id", schoolId);
@@ -111,6 +114,24 @@ export default function Setup() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <h2 className="mb-3 font-semibold">School profile</h2>
+          {school ? (
+            <div className="mb-4">
+              <LogoUploadField
+                schoolId={school.id}
+                schoolName={school.name}
+                currentUrl={logoUrl}
+                disabled={readOnly}
+                onChanged={(url) => {
+                  setLogoUrl(url);
+                  load();
+                }}
+              />
+            </div>
+          ) : (
+            <p className="mb-4 text-sm text-slate-500">
+              Save the school profile first, then you can upload the logo.
+            </p>
+          )}
           <form onSubmit={saveSchool} className="space-y-3">
             <div><label className={labelCls}>School name</label><input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Greenfield Academy" /></div>
             <div><label className={labelCls}>Motto</label><input className={inputCls} value={motto} onChange={(e) => setMotto(e.target.value)} /></div>
