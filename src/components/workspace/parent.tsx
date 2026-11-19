@@ -14,6 +14,13 @@ import {
   plainGrade,
 } from "@/lib/roles";
 import { btnCls, Card, ConfigBanner, inputCls, labelCls, PageHeader } from "@/components/ui";
+import { LockedNotice } from "@/components/pending-banner";
+import {
+  addPupilLink,
+  findPupilByAdmission,
+  findPupilsByName,
+} from "@/lib/registration";
+import type { ParentChild, PupilMatch } from "@/lib/types";
 import TimetableView from "@/components/workspace/timetable-view";
 import MessagesPanel from "@/components/workspace/messages-panel";
 import ComplaintWizard from "@/components/workspace/complaint-wizard";
@@ -59,6 +66,22 @@ export default function ParentWorkspace() {
   const isPreview = profile?.role === "platform_owner" || profile?.role === "school_admin";
   const parentId = profile?.parent_id ?? pickerParentId;
   const me = parents.find((p) => p.id === parentId);
+  // Pending accounts (migration 0006) may do setup only: add pupils
+  // and fill in their details. Fees, messages, complaints, helper
+  // and summaries stay locked until approval.
+  const isPending = !isPreview && profile?.status === "Pending";
+  const [myLinks, setMyLinks] = useState<(ParentChild & { student: Student | null })[]>([]);
+  const [editFirst, setEditFirst] = useState("");
+  const [editLast, setEditLast] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [setupMsg, setSetupMsg] = useState("");
+  const [admNo, setAdmNo] = useState("");
+  const [pupilFirst, setPupilFirst] = useState("");
+  const [pupilLast, setPupilLast] = useState("");
+  const [pupilClass, setPupilClass] = useState("");
+  const [pupilRel, setPupilRel] = useState("Parent");
+  const [foundPupil, setFoundPupil] = useState<PupilMatch | null>(null);
+  const [linkBusy, setLinkBusy] = useState(false);
 
   const load = async () => {
     if (!schoolId) return;
@@ -159,6 +182,114 @@ export default function ParentWorkspace() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parentId, schoolId, classes.length]);
 
+  // My proposed pupil links, with their approval state — shown while
+  // pending so a wrong child / wrong class can be spotted early.
+  const loadLinks = async () => {
+    if (!parentId || !schoolId) return;
+    const { data: l } = await supabase
+      .from("parent_children")
+      .select("*, students(*)")
+      .eq("parent_id", parentId);
+    setMyLinks(
+      ((l as (ParentChild & { students: Student | null })[] | null) ?? []).map(
+        (r) => ({ ...r, student: r.students ?? null }),
+      ),
+    );
+  };
+
+  /* eslint-disable react-hooks/set-state-in-effect -- same data-loading pattern as the rest of this codebase */
+  useEffect(() => {
+    loadLinks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parentId, schoolId]);
+
+  useEffect(() => {
+    if (me) {
+      setEditFirst(me.first_name);
+      setEditLast(me.last_name);
+      setEditPhone(me.phone ?? "");
+    }
+  }, [me?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const saveMyDetails = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!me || !editFirst.trim() || !editLast.trim()) return;
+    const { error } = await supabase
+      .from("parents")
+      .update({
+        first_name: editFirst.trim(),
+        last_name: editLast.trim(),
+        phone: editPhone.trim() || null,
+      })
+      .eq("id", me.id);
+    setSetupMsg(error ? `Could not save: ${error.message}` : "Your details are saved.");
+    if (!error) load();
+  };
+
+  const lookupPupil = async () => {
+    if (!schoolId) return;
+    setLinkBusy(true);
+    setSetupMsg("");
+    setFoundPupil(null);
+    if (admNo.trim()) {
+      const { pupil, error } = await findPupilByAdmission(schoolId, admNo);
+      setLinkBusy(false);
+      if (error) setSetupMsg(`Could not look up that pupil: ${error}`);
+      else if (!pupil)
+        setSetupMsg(`No pupil with admission number “${admNo.trim()}” in this school. Check the number — it looks like DSV/2026/0001.`);
+      else setFoundPupil(pupil);
+      return;
+    }
+    if (!pupilFirst.trim() || !pupilLast.trim()) {
+      setLinkBusy(false);
+      setSetupMsg("Enter an admission number, or the pupil's first and last name.");
+      return;
+    }
+    const { pupils, error } = await findPupilsByName(
+      schoolId,
+      pupilFirst,
+      pupilLast,
+      pupilClass || null,
+    );
+    setLinkBusy(false);
+    if (error) setSetupMsg(`Could not look up that pupil: ${error}`);
+    else if (pupils.length === 0)
+      setSetupMsg(`No pupil called “${pupilFirst.trim()} ${pupilLast.trim()}”${pupilClass ? " in that class" : ""}. Check the spelling, or use the admission number.`);
+    else if (pupils.length > 1)
+      setSetupMsg(`More than one pupil is called “${pupilFirst.trim()} ${pupilLast.trim()}”. Use the admission number to pick the right one.`);
+    else setFoundPupil(pupils[0]);
+  };
+
+  const confirmAddPupil = async () => {
+    if (!foundPupil || !parentId) return;
+    setLinkBusy(true);
+    const res = await addPupilLink(parentId, foundPupil.id, pupilRel);
+    setLinkBusy(false);
+    if (!res.ok) {
+      setSetupMsg(res.error ?? "Could not add that pupil.");
+      return;
+    }
+    setSetupMsg(
+      `${foundPupil.first_name} ${foundPupil.last_name} added as a proposed link — the school admin and class teacher will check it before approval.`,
+    );
+    setFoundPupil(null);
+    setAdmNo("");
+    setPupilFirst("");
+    setPupilLast("");
+    load();
+    loadLinks();
+  };
+
+  const withdrawLink = async (linkId: string) => {
+    const { error } = await supabase
+      .from("parent_children")
+      .delete()
+      .eq("id", linkId);
+    setSetupMsg(error ? `Could not remove: ${error.message}` : "Proposed link removed.");
+    if (!error) loadLinks();
+  };
+
   const childLabels: Record<string, string> = {};
   for (const c of children) childLabels[c.student.id] = `${c.student.first_name} ${c.student.last_name} · ${c.className}`;
   const childIds = children.map((c) => c.student.id);
@@ -209,18 +340,112 @@ export default function ParentWorkspace() {
         </div>
       )}
       <div className="mb-4 flex flex-wrap gap-2">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`rounded-full px-3 py-1.5 text-sm font-semibold ${tab === t.id ? "bg-royal text-white" : "border border-line bg-white text-slate-600"}`}
-          >
-            {t.label}
-          </button>
-        ))}
+        {TABS.map((t) => {
+          const locked = !!isPending && t.id !== "children";
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              disabled={locked}
+              title={locked ? "Locked until your account is approved" : undefined}
+              className={`rounded-full px-3 py-1.5 text-sm font-semibold disabled:opacity-50 ${tab === t.id ? "bg-royal text-white" : "border border-line bg-white text-slate-600"}`}
+            >
+              {t.label}
+              {locked ? " 🔒" : ""}
+            </button>
+          );
+        })}
       </div>
 
-      {tab === "children" && (
+      {tab === "children" && isPending ? (
+        <div className="space-y-4">
+          {setupMsg && <p className="text-sm font-medium text-royal">{setupMsg}</p>}
+          <Card>
+            <h2 className="mb-3 font-semibold">Your details</h2>
+            <form onSubmit={saveMyDetails} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className={labelCls}>First name</label><input className={inputCls} value={editFirst} onChange={(e) => setEditFirst(e.target.value)} /></div>
+                <div><label className={labelCls}>Last name</label><input className={inputCls} value={editLast} onChange={(e) => setEditLast(e.target.value)} /></div>
+              </div>
+              <div><label className={labelCls}>Phone</label><input className={inputCls} value={editPhone} onChange={(e) => setEditPhone(e.target.value)} /></div>
+              <button className={btnCls}>Save my details</button>
+            </form>
+          </Card>
+          <Card>
+            <h2 className="mb-1 font-semibold">Add a pupil</h2>
+            <p className="mb-3 text-sm text-slate-500">
+              Add each child under you — by admission number (best), or by
+              name and class. The school admin and the class teacher check
+              every link before approval.
+            </p>
+            <div className="space-y-2">
+              <div>
+                <label className={labelCls}>Admission number</label>
+                <input className={inputCls} value={admNo} onChange={(e) => setAdmNo(e.target.value)} placeholder="e.g. DSV/2026/0001" />
+              </div>
+              <p className="text-xs text-slate-400">Or, without the number:</p>
+              <div className="grid grid-cols-2 gap-2">
+                <input className={inputCls} value={pupilFirst} onChange={(e) => setPupilFirst(e.target.value)} placeholder="Pupil's first name" />
+                <input className={inputCls} value={pupilLast} onChange={(e) => setPupilLast(e.target.value)} placeholder="Pupil's last name" />
+              </div>
+              <select className={inputCls} value={pupilClass} onChange={(e) => setPupilClass(e.target.value)}>
+                <option value="">— Class (optional) —</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <div className="flex gap-2">
+                <select className={inputCls} value={pupilRel} onChange={(e) => setPupilRel(e.target.value)}>
+                  <option>Parent</option>
+                  <option>Father</option>
+                  <option>Mother</option>
+                  <option>Guardian</option>
+                </select>
+                <button className={btnCls} onClick={lookupPupil} disabled={linkBusy}>
+                  Look up pupil
+                </button>
+              </div>
+              {foundPupil && (
+                <div className="rounded-lg bg-mist px-3 py-2 text-sm">
+                  <p>
+                    <strong>{foundPupil.first_name} {foundPupil.last_name}</strong>
+                    {foundPupil.class_name ? ` · ${foundPupil.class_name}` : ""}
+                  </p>
+                  <button className={`${btnCls} mt-2`} onClick={confirmAddPupil} disabled={linkBusy}>
+                    Add as my child
+                  </button>
+                </div>
+              )}
+            </div>
+          </Card>
+          <Card>
+            <h2 className="mb-3 font-semibold">My pupils</h2>
+            {myLinks.length === 0 ? (
+              <p className="text-sm text-slate-500">No pupils linked yet — add one above.</p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {myLinks.map((l) => (
+                  <li key={l.id} className="flex items-center justify-between rounded-lg bg-mist px-3 py-2">
+                    <span>
+                      <strong>{l.student ? `${l.student.first_name} ${l.student.last_name}` : "Unknown pupil"}</strong>
+                      {l.student?.admission_no ? ` · ${l.student.admission_no}` : ""}
+                      {l.relationship ? ` · ${l.relationship}` : ""}
+                      <span className={`ml-2 rounded-full px-2 py-0.5 text-xs font-semibold ${l.status === "Approved" ? "bg-green-100 text-green-700" : l.status === "Rejected" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-800"}`}>
+                        {l.status ?? "Pending"}
+                      </span>
+                    </span>
+                    {l.status === "Pending" && (
+                      <button className="font-semibold text-royal" onClick={() => withdrawLink(l.id)}>
+                        Remove
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+      ) : tab === "children" && (
         <div className="space-y-4">
           {children.length === 0 && (
             <Card><p className="text-sm text-slate-500">No children linked to this account yet. Ask the school admin to link your children under Parents.</p></Card>
@@ -286,41 +511,62 @@ export default function ParentWorkspace() {
         </div>
       )}
 
-      {tab === "fees" && selected && (
-        <FeesSection
-          schoolId={schoolId ?? ""}
-          children={children}
-          selectedId={selected.student.id}
-          onSelect={setSelectedChild}
-          term={term}
-        />
-      )}
+      {tab === "fees" &&
+        (isPending ? (
+          <LockedNotice what="Fees & Receipts" />
+        ) : (
+          selected && (
+            <FeesSection
+              schoolId={schoolId ?? ""}
+              children={children}
+              selectedId={selected.student.id}
+              onSelect={setSelectedChild}
+              term={term}
+            />
+          )
+        ))}
 
-      {tab === "messages" && me && (
-        <MessagesPanel
-          schoolId={schoolId ?? ""}
-          identity={{ senderRole: "Parent", teacherId: null, studentId: null, parentId: me.id }}
-          studentOptions={childIds}
-          studentLabels={childLabels}
-        />
-      )}
+      {tab === "messages" &&
+        (isPending ? (
+          <LockedNotice what="Messages" />
+        ) : (
+          me && (
+            <MessagesPanel
+              schoolId={schoolId ?? ""}
+              identity={{ senderRole: "Parent", teacherId: null, studentId: null, parentId: me.id }}
+              studentOptions={childIds}
+              studentLabels={childLabels}
+            />
+          )
+        ))}
 
-      {tab === "complaints" && me && (
-        <ComplaintWizard
-          schoolId={schoolId ?? ""}
-          raisedBy="Parent"
-          reporterName={`${me.first_name} ${me.last_name}`}
-          studentOptions={childIds}
-          studentLabels={childLabels}
-        />
-      )}
+      {tab === "complaints" &&
+        (isPending ? (
+          <LockedNotice what="Complaints & Queries" />
+        ) : (
+          me && (
+            <ComplaintWizard
+              schoolId={schoolId ?? ""}
+              raisedBy="Parent"
+              reporterName={`${me.first_name} ${me.last_name}`}
+              studentOptions={childIds}
+              studentLabels={childLabels}
+            />
+          )
+        ))}
 
-      {tab === "helper" && me && (
-        <ParentHelperSection schoolId={schoolId ?? ""} children={children} term={term} />
-      )}
+      {tab === "helper" &&
+        (isPending ? (
+          <LockedNotice what="AI Parent Helper" />
+        ) : (
+          me && <ParentHelperSection schoolId={schoolId ?? ""} children={children} term={term} />
+        ))}
 
-      {tab === "summaries" && (
-        <Card>
+      {tab === "summaries" &&
+        (isPending ? (
+          <LockedNotice what="Weekly Summaries" />
+        ) : (
+          <Card>
           <h2 className="mb-3 font-semibold">Weekly summaries</h2>
           <p className="mb-3 text-sm text-slate-500">Plain-language weekly summaries the school has shared with you.</p>
           {summaries.length === 0 ? (
@@ -337,8 +583,8 @@ export default function ParentWorkspace() {
               ))}
             </ul>
           )}
-        </Card>
-      )}
+          </Card>
+        ))}
     </div>
   );
 }
