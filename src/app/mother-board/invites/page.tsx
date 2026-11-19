@@ -51,7 +51,7 @@ export default function MotherBoardInvites() {
       return;
     }
     setLastLink(inviteLink(res.invite.token, school.slug));
-    setMsg(`Invite created for ${email.trim()} — ${role.replace("_", " ")} at ${school.name}. Share the link below.`);
+    setMsg(`Invite created for ${email.trim()} - ${role.replace("_", " ")} at ${school.name}. Share the link below.`);
     setEmail("");
     setBusy(false);
     load();
@@ -64,10 +64,10 @@ export default function MotherBoardInvites() {
   };
 
   const resend = (inv: SchoolInvite) => {
-    // No email is sent yet — "resend" re-shows the live link to share.
+    // No email is sent yet - "resend" re-shows the live link to share.
     const school = schools.find((s) => s.id === inv.school_id);
     setLastLink(inviteLink(inv.token, school?.slug ?? null));
-    setMsg(`Invite link for ${inv.email} is shown below — share it again. (Live email sending plugs in later.)`);
+    setMsg(`Invite link for ${inv.email} is shown below - share it again. (Live email sending plugs in later.)`);
   };
 
   return (
@@ -75,7 +75,7 @@ export default function MotherBoardInvites() {
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
       {lastLink && (
         <Card>
-          <h2 className="mb-2 font-semibold">Invite link — share it</h2>
+          <h2 className="mb-2 font-semibold">Invite link - share it</h2>
           <p className="mb-2 break-all rounded-lg bg-mist px-3 py-2 font-mono text-xs">{lastLink}</p>
           <button className="text-sm font-semibold text-royal" onClick={() => navigator.clipboard?.writeText(lastLink)}>
             Copy link
