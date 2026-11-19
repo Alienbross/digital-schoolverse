@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { createInvite, inviteLink } from "@/lib/invites";
+import { schoolPath, slugify, slugProblem } from "@/lib/slug";
 import type { Parent, Role, School, SchoolInvite, Student, Teacher } from "@/lib/types";
 import { schoolCounts } from "@/lib/mother-board";
 import { LogoUploadField, SchoolLogo } from "@/components/school-logo";
@@ -29,6 +30,39 @@ export default function SchoolControl() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [inviteUrl, setInviteUrl] = useState("");
+  const [slugEdit, setSlugEdit] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const schoolUrl = school?.slug
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}${schoolPath(school.slug)}`
+    : "";
+
+  const saveSlug = async () => {
+    if (!school) return;
+    const cleanSlug = slugify(slugEdit.trim());
+    const problem = slugProblem(cleanSlug);
+    if (problem) {
+      setMsg(`Could not save short name: ${problem}`);
+      return;
+    }
+    const { error } = await supabase
+      .from("schools")
+      .update({ slug: cleanSlug })
+      .eq("id", school.id);
+    if (error) {
+      const taken =
+        (error as { code?: string } | null)?.code === "23505" ||
+        (error.message ?? "").toLowerCase().includes("duplicate");
+      setMsg(
+        taken
+          ? `Could not save short name: "${cleanSlug}" is already taken — try another.`
+          : `Could not save short name: ${error.message}`,
+      );
+      return;
+    }
+    setMsg(`${school.name} now lives at ${schoolPath(cleanSlug)}.`);
+    load();
+  };
 
   const load = async () => {
     const { data: s } = await supabase.from("schools").select("*").eq("id", schoolId).single();
@@ -71,7 +105,7 @@ export default function SchoolControl() {
       setBusy(false);
       return;
     }
-    setInviteUrl(inviteLink(res.invite.token));
+    setInviteUrl(inviteLink(res.invite.token, school.slug));
     setMsg(`Login invite created for ${email.trim()} (${role.replace("_", " ")}). Share the link below.`);
     setEmail("");
     setLinkId("");
@@ -109,6 +143,32 @@ export default function SchoolControl() {
         {school.plan} plan · {school.status} · {counts.students} pupils · {counts.teachers} teachers ·{" "}
         {counts.parents} parents · {counts.openComplaints} open complaints
       </p>
+      <p className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+        {school.slug ? (
+          <>
+            <Link href={schoolPath(school.slug)} className="break-all font-mono font-semibold text-royal">
+              {schoolUrl.replace(/^https?:\/\//, "")}
+            </Link>
+            <button
+              className="text-xs font-semibold text-royal"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard?.writeText(schoolUrl);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                } catch { /* ignore */ }
+              }}
+            >
+              {copied ? "Copied ✓" : "Copy link"}
+            </button>
+            <Link href={schoolPath(school.slug)} className="text-xs font-semibold text-royal">
+              Open portal →
+            </Link>
+          </>
+        ) : (
+          <span className="text-slate-400">No web address yet — set a short name below.</span>
+        )}
+      </p>
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
       {inviteUrl && (
         <Card>
@@ -129,6 +189,26 @@ export default function SchoolControl() {
             currentUrl={school.logo_url}
             onChanged={() => load()}
           />
+        </Card>
+        <Card>
+          <h2 className="mb-3 font-semibold">Web address (short name)</h2>
+          <div className="flex items-center gap-1">
+            <span className="shrink-0 text-xs text-slate-400">…/ </span>
+            <input
+              className={inputCls}
+              value={slugEdit || school.slug || ""}
+              onChange={(e) => setSlugEdit(e.target.value.toLowerCase())}
+              placeholder="greenfield"
+            />
+          </div>
+          <p className="mt-2 text-xs text-slate-400">
+            Lowercase letters, numbers and hyphens only. Changing it moves
+            the school&apos;s address — old links stop working, so tell the
+            school.
+          </p>
+          <button className={`${btnCls} mt-3`} onClick={saveSlug}>
+            Save short name
+          </button>
         </Card>
         <Card>
           <h2 className="mb-3 font-semibold">Generate a login for this school</h2>
