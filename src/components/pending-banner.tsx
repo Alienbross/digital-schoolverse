@@ -4,7 +4,7 @@ import type { Profile } from "@/lib/types";
 
 /** Banner shown to a teacher / student / parent whose account is
  *  still waiting for approval (or was rejected). Pending accounts
- *  can complete their profile/setup only — the rest of the workspace
+ *  can complete their profile/setup only - the rest of the workspace
  *  stays locked until the school approves them. */
 export function PendingBanner({ profile }: { profile: Profile }) {
   if (profile.status === "Active") return null;
