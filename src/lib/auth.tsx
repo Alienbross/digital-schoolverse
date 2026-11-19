@@ -76,12 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Resolve the path slug to a school (public RPC — works signed out).
+  // Resolve the path slug to a school (public RPC - works signed out).
   useEffect(() => {
     if (!pathSlug) return;
     if (!isSupabaseConfigured) {
       // No Supabase yet (local dev without keys): pages work
-      // unauthenticated, as before — no slug to resolve.
+      // unauthenticated, as before - no slug to resolve.
       setPathSchoolStatus("none");
       return;
     }
@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setOwnerSchoolIdState(localStorage.getItem(OWNER_SCHOOL_KEY));
     } catch {
-      /* storage unavailable — owner just picks no school */
+      /* storage unavailable - owner just picks no school */
     }
   }, []);
 
@@ -177,7 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isOwner = profile?.role === "platform_owner";
   // School users are scoped to their own school. The platform owner is
   // scoped to the school they picked in the header (or null = all schools).
-  // On a /<slug> path, the path's school wins for everyone — the shell
+  // On a /<slug> path, the path's school wins for everyone - the shell
   // guards school users against opening another school's path.
   const schoolId = pathSchool
     ? pathSchool.id
@@ -226,7 +226,7 @@ export function useAuth() {
 /** True when the signed-in user may manage school data: platform owner
  *  or the school's admin. Teachers, students and parents write only
  *  their own scoped rows (registers, scores, attempts, complaints,
- *  payments — migration 0005); they cannot manage school setup. */
+ *  payments - migration 0005); they cannot manage school setup. */
 export function useCanManage() {
   const { profile } = useAuth();
   return (
