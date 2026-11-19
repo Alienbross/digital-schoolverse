@@ -1,8 +1,8 @@
-# Digital SchoolVerse — Live Pilot (free tier)
+# Digital SchoolVerse - Live Pilot (free tier)
 
 Real code for the Digital SchoolVerse school portal: **Next.js 16 (App Router)
 + Tailwind CSS v4 + Supabase (PostgreSQL)**. Royal Blue `#1D4ED8` + Sky
-`#38BDF8`, light default theme. This is the go-live build — the Muse portal
+`#38BDF8`, light default theme. This is the go-live build - the Muse portal
 artifact (`digital-schoolverse-portal`) was the working prototype; this repo
 is the real app that can be deployed and shared.
 
@@ -12,9 +12,9 @@ is the real app that can be deployed and shared.
   counts, School Setup (profile, sessions & terms), Classes & Arms (with
   branches), Subjects (per-class assignments + subject teachers), Students
   register (auto admission numbers `DSV/2026/0001…`, search), Teachers &
-  Staff, Parents (parent–child linking, siblings share one parent), Plan &
+  Staff, Parents (parent-child linking, siblings share one parent), Plan &
   Roadmap page.
-- **Supabase schema** in `supabase/migrations/0001_initial_schema.sql` —
+- **Supabase schema** in `supabase/migrations/0001_initial_schema.sql` -
   the full data model carried over from the Muse portal: schools, branches,
   terms, classes, subjects, students, parents, attendance, scores
   (Test /20, Assignment /10, Exam /70), fee bills/payments/online payments,
@@ -26,7 +26,7 @@ is the real app that can be deployed and shared.
 - **Advanced features** (AI Teacher Assistant, online fee payment, CBT,
   analytics, SMS/WhatsApp, weekly summaries, bus/clinic/discipline,
   multi-branch report cards, online complaint forms) are built in the Muse
-  portal and are ported next, in that order — see `src/app/plan/page.tsx`.
+  portal and are ported next, in that order - see `src/app/plan/page.tsx`.
   The Teacher, Student and Parent workspaces are now ported (migration
   0005): registers, scores, homework, CBT practice, fees with a test
   checkout, complaints, messages and AI drafting assistants.
@@ -40,20 +40,20 @@ npm run dev                  # http://localhost:3000
 ```
 
 Without env vars the app still builds and runs, but shows a
-“Supabase not connected yet” banner and empty registers — nothing is saved.
+“Supabase not connected yet” banner and empty registers - nothing is saved.
 
-## Set up Supabase (free tier — $0)
+## Set up Supabase (free tier - $0)
 
-1. Create a project at supabase.com (free tier; it pauses after a week idle —
+1. Create a project at supabase.com (free tier; it pauses after a week idle -
    fine for the pilot, move to Pro $25/mo before charging schools).
 2. In the Supabase SQL editor, run
    `supabase/migrations/0001_initial_schema.sql`, then
    `supabase/migrations/0002_auth_and_mother_board.sql`, then
    `supabase/migrations/0003_school_logos.sql` (school logos bucket),
    then `supabase/migrations/0004_school_slugs.sql` (per-school path
-   URLs — each school gets its own address, e.g. `/greenfield`), then
+   URLs - each school gets its own address, e.g. `/greenfield`), then
    `supabase/migrations/0005_role_workspaces.sql` (scoped write access
-   for teacher / student / parent roles — registers, scores, CBT
+   for teacher / student / parent roles - registers, scores, CBT
    attempts, complaints, messages, test fee payments).
 3. Copy the project URL + anon key (Settings → API) into `.env.local`.
 
@@ -61,7 +61,7 @@ Without env vars the app still builds and runs, but shows a
 
 - **Sign-in** at `/login` (Supabase Auth, email + password). Roles:
   `platform_owner` (Mother Board, full control), `school_admin` (own
-  school only), `teacher` / `student` / `parent` — each lands in their
+  school only), `teacher` / `student` / `parent` - each lands in their
   own workspace after sign-in (`/<slug>/teacher`, `/<slug>/student`,
   `/<slug>/parent`): registers and scores for teachers, results/CBT
   practice for students, children/fees/complaints for parents. A teacher
@@ -77,7 +77,7 @@ Without env vars the app still builds and runs, but shows a
 - **Invites**: generating an invite creates a record with a token and
   a 7-day expiry; the invite link is `/<school-slug>/invite/<token>`
   (or `/invite/<token>` without a slug). The invitee sets a password
-  and logs in. **No email is sent by the app yet** — the Mother Board
+  and logs in. **No email is sent by the app yet** - the Mother Board
   shows the link and the owner shares it.
 - **Per-school path URLs**: each school has a short name (slug, e.g.
   `greenfield`) set by the platform owner when the school is created,
@@ -87,19 +87,19 @@ Without env vars the app still builds and runs, but shows a
   sign-in at `/<slug>/login` lands in that school. The plain `/…`
   routes keep working for the platform owner. An unknown slug shows a
   "School not found" page, and a user opening another school's path
-  sees a "belongs to another school" page — RLS still enforces it.
+  sees a "belongs to another school" page - RLS still enforces it.
 - **Self-registration + approvals** (migration 0006): teachers,
   students and parents register themselves from the school's own
-  link — `/<slug>/register` (chooser), `/<slug>/register/teacher`,
+  link - `/<slug>/register` (chooser), `/<slug>/register/teacher`,
   `/<slug>/register/student`, `/<slug>/register/parent`. No invite
   needed. The admin opens each phase in order in School Setup
-  (teachers, then students, then parents — or all at once); a closed
+  (teachers, then students, then parents - or all at once); a closed
   phase shows "not open yet". Parents add their pupil(s) by admission
   number (best) or name + class; each link starts as a proposal the
   admin and the pupil's class teacher are notified about, so a wrong
   child / wrong class is caught before approval. Accounts start
   **Pending** and can only complete their profile/setup until
-  approved — registers, scores, fees, complaints, messages and CBT
+  approved - registers, scores, fees, complaints, messages and CBT
   stay locked (banner + locked tabs in the workspaces, and RLS in
   migration 0006 refuses the writes). Approvals live under
   Registration & Approvals: teachers by the school admin only,
@@ -109,7 +109,7 @@ Without env vars the app still builds and runs, but shows a
   links. In-app notifications (bell in the header, no email yet) go
   to the admin on every registration, to class teachers on pupil
   links, and to the user on approval / rejection. School admins still
-  do NOT self-register — the platform owner invites them from the
+  do NOT self-register - the platform owner invites them from the
   Mother Board, as before.
 - **First owner login**: create the user in Supabase → Authentication
   → Users, then insert their `profiles` row with role
@@ -119,15 +119,15 @@ Without env vars the app still builds and runs, but shows a
   default `#F8FAFC`, Dark deep navy `#0B1220`), choice saved.
 
 > **Security:** migration 0002 replaces the pilot open RLS policy with
-> auth-based policies — platform owner sees everything, school users
+> auth-based policies - platform owner sees everything, school users
 > see only their own school, and only the owner / school admin may
 > write school data. The owner profile can only be created in the SQL
 > editor, never through the app.
 
 ## Deploy (free pilot)
 
-1. Push this folder to GitHub (repo under the owner's name — still needed).
-2. Import the repo in Vercel (Hobby plan, $0 — personal/non-commercial
+1. Push this folder to GitHub (repo under the owner's name - still needed).
+2. Import the repo in Vercel (Hobby plan, $0 - personal/non-commercial
    only; Pro $20/mo for the live business site).
 3. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in
    Vercel → Project Settings → Environment Variables.
@@ -137,24 +137,24 @@ Without env vars the app still builds and runs, but shows a
 
 ## What still needs the user
 
-- **Run migration 0006** in the Supabase SQL editor (see above) —
+- **Run migration 0006** in the Supabase SQL editor (see above) -
   until then the register pages show "School not found" (the
   `school_registration_status` RPC does not exist yet), approvals do
   not run, and the phase switches have nowhere to save. Run it after
   0005, then push + redeploy.
-- **Run migration 0005** in the Supabase SQL editor (see above) —
+- **Run migration 0005** in the Supabase SQL editor (see above) -
   until then teachers cannot save registers/scores, students cannot
   submit CBT attempts, and parents cannot pay online or raise
   complaints (migration 0002 only let admins write).
-- **Run migration 0002** in the Supabase SQL editor (see above) —
+- **Run migration 0002** in the Supabase SQL editor (see above) -
   until then the live site still works the old unauthenticated way.
 - **Create the platform-owner login** (Supabase Dashboard + one SQL
-  insert) — see `docs/mother-board-setup.md`.
-- **Pilot school** — one real school to test end to end before opening registration.
-- **Domain** — not bought yet.
-- **Paystack live keys** — online fee payment is a test checkout until then.
-- **SMS/WhatsApp provider** — alerts are a test send until a provider is connected.
-- **Pilot school** — one real school to test end to end before opening registration.
+  insert) - see `docs/mother-board-setup.md`.
+- **Pilot school** - one real school to test end to end before opening registration.
+- **Domain** - not bought yet.
+- **Paystack live keys** - online fee payment is a test checkout until then.
+- **SMS/WhatsApp provider** - alerts are a test send until a provider is connected.
+- **Pilot school** - one real school to test end to end before opening registration.
 
 ## Costs (checked Nov 2026)
 
