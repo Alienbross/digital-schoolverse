@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { createInvite, inviteLink } from "@/lib/invites";
+import { schoolPath, slugify, slugProblem } from "@/lib/slug";
 import type { School } from "@/lib/types";
 import { schoolCounts } from "@/lib/mother-board";
 import { SchoolLogo } from "@/components/school-logo";
@@ -17,6 +18,8 @@ export default function MotherBoardSchools() {
   const [schools, setSchools] = useState<School[]>([]);
   const [counts, setCounts] = useState<Record<string, Counts>>({});
   const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [plan, setPlan] = useState("Basics");
@@ -24,6 +27,22 @@ export default function MotherBoardSchools() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [inviteUrl, setInviteUrl] = useState("");
+  // Inline slug editing per school: slug text being edited, by school id.
+  const [editSlug, setEditSlug] = useState<Record<string, string>>({});
+  const [copied, setCopied] = useState("");
+
+  const copyText = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard?.writeText(text);
+      setCopied(key);
+      setTimeout(() => setCopied(""), 2000);
+    } catch {
+      /* clipboard unavailable — the link text is visible to copy by hand */
+    }
+  };
+
+  const schoolUrl = (s: School) =>
+    s.slug ? `${window.location.origin}${schoolPath(s.slug)}` : "";
 
   const load = async () => {
     const { data } = await supabase.from("schools").select("*").order("created_at");
@@ -42,6 +61,12 @@ export default function MotherBoardSchools() {
   const createSchool = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+    const cleanSlug = slugify(slug.trim() || name);
+    const problem = slugProblem(cleanSlug);
+    if (problem) {
+      setMsg(`Could not create school: ${problem}`);
+      return;
+    }
     setBusy(true);
     setMsg("");
     setInviteUrl("");
@@ -49,6 +74,7 @@ export default function MotherBoardSchools() {
       .from("schools")
       .insert({
         name: name.trim(),
+        slug: cleanSlug,
         email: email.trim() || null,
         phone: phone.trim() || null,
         plan,
@@ -57,12 +83,19 @@ export default function MotherBoardSchools() {
       .select("*")
       .single();
     if (error || !data) {
-      setMsg(`Could not create school: ${error?.message ?? "unknown error"}`);
+      const taken =
+        (error as { code?: string } | null)?.code === "23505" ||
+        (error?.message ?? "").toLowerCase().includes("duplicate");
+      setMsg(
+        taken
+          ? `Could not create school: the short name "${cleanSlug}" is already taken — try another.`
+          : `Could not create school: ${error?.message ?? "unknown error"}`,
+      );
       setBusy(false);
       return;
     }
     const school = data as School;
-    let note = `School ${school.name} created (Trial, ${plan}).`;
+    let note = `School ${school.name} created (Trial, ${plan}) — its address is ${schoolPath(school.slug)}.`;
     if (adminEmail.trim()) {
       const res = await createInvite({
         email: adminEmail.trim(),
@@ -72,15 +105,46 @@ export default function MotherBoardSchools() {
         createdBy: user?.id ?? null,
       });
       if (res.invite) {
-        setInviteUrl(inviteLink(res.invite.token));
+        setInviteUrl(inviteLink(res.invite.token, school.slug));
         note += " Admin invite created — share the link below.";
       } else {
         note += ` But the admin invite failed: ${res.error}`;
       }
     }
     setMsg(note);
-    setName(""); setEmail(""); setPhone(""); setAdminEmail("");
+    setName(""); setSlug(""); setSlugTouched(false); setEmail(""); setPhone(""); setAdminEmail("");
     setBusy(false);
+    load();
+  };
+
+  const saveSlug = async (s: School) => {
+    const cleanSlug = slugify((editSlug[s.id] ?? s.slug ?? "").trim());
+    const problem = slugProblem(cleanSlug);
+    if (problem) {
+      setMsg(`Could not save short name: ${problem}`);
+      return;
+    }
+    const { error } = await supabase
+      .from("schools")
+      .update({ slug: cleanSlug })
+      .eq("id", s.id);
+    if (error) {
+      const taken =
+        (error as { code?: string } | null)?.code === "23505" ||
+        (error.message ?? "").toLowerCase().includes("duplicate");
+      setMsg(
+        taken
+          ? `Could not save short name: "${cleanSlug}" is already taken — try another.`
+          : `Could not save short name: ${error.message}`,
+      );
+      return;
+    }
+    setMsg(`${s.name} now lives at ${schoolPath(cleanSlug)}.`);
+    setEditSlug((prev) => {
+      const next = { ...prev };
+      delete next[s.id];
+      return next;
+    });
     load();
   };
 
@@ -126,7 +190,17 @@ export default function MotherBoardSchools() {
         <Card>
           <h2 className="mb-3 font-semibold">Create a school</h2>
           <form onSubmit={createSchool} className="space-y-3">
-            <div><label className={labelCls}>School name</label><input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Greenfield Academy" /></div>
+            <div><label className={labelCls}>School name</label><input className={inputCls} value={name} onChange={(e) => { setName(e.target.value); if (!slugTouched) setSlug(slugify(e.target.value)); }} placeholder="e.g. Greenfield Academy" /></div>
+            <div><label className={labelCls}>Short name (its web address)</label>
+              <div className="flex items-center gap-1">
+                <span className="shrink-0 text-xs text-slate-400">…/ </span>
+                <input className={inputCls} value={slug} onChange={(e) => { setSlugTouched(true); setSlug(e.target.value.toLowerCase()); }} placeholder="greenfield" />
+              </div>
+              <p className="mt-1 text-xs text-slate-400">
+                Lowercase letters, numbers and hyphens only. This is the
+                school&apos;s address: {slug ? schoolPath(slugify(slug) || "greenfield") : "/greenfield"} — suggested from the name, change it if you like.
+              </p>
+            </div>
             <div><label className={labelCls}>School email</label><input className={inputCls} type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
             <div><label className={labelCls}>School phone</label><input className={inputCls} value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
             <div><label className={labelCls}>Plan</label>
@@ -166,6 +240,38 @@ export default function MotherBoardSchools() {
                       {c ? `${c.students} pupils · ${c.teachers} teachers · ${c.parents} parents · ${c.openComplaints} open complaints` : "…"}
                       {s.email ? ` · ${s.email}` : ""}
                     </p>
+                    <p className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                      {s.slug ? (
+                        <>
+                          <Link href={schoolPath(s.slug)} className="break-all font-mono font-semibold text-royal">
+                            {schoolUrl(s).replace(/^https?:\/\//, "")}
+                          </Link>
+                          <button
+                            className="font-semibold text-royal"
+                            onClick={() => copyText(schoolUrl(s), `url-${s.id}`)}
+                          >
+                            {copied === `url-${s.id}` ? "Copied ✓" : "Copy link"}
+                          </button>
+                          <Link href={schoolPath(s.slug)} className="font-semibold text-royal">
+                            Open portal →
+                          </Link>
+                        </>
+                      ) : (
+                        <span className="text-slate-400">No web address yet — set a short name below.</span>
+                      )}
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                      <label className="text-slate-500">Short name</label>
+                      <input
+                        className="w-40 rounded border border-line bg-white px-2 py-1"
+                        value={editSlug[s.id] ?? s.slug ?? ""}
+                        onChange={(e) => setEditSlug((prev) => ({ ...prev, [s.id]: e.target.value.toLowerCase() }))}
+                        placeholder="greenfield"
+                      />
+                      <button className="font-semibold text-royal" onClick={() => saveSlug(s)}>
+                        Save short name
+                      </button>
+                    </div>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                       <label className="text-slate-500">Plan</label>
                       <select
