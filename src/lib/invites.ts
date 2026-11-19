@@ -3,7 +3,7 @@ import { PENDING_INVITE_KEY } from "@/lib/auth";
 import type { Role, SchoolInvite } from "@/lib/types";
 
 /** An invite link is just the site URL + the token. No email is sent by
- *  the app yet — the Mother Board shows this link and the owner shares
+ *  the app yet - the Mother Board shows this link and the owner shares
  *  it (WhatsApp, email, SMS). Live email sending plugs in here later:
  *  send this link from the server (Supabase Edge Function / Resend /
  *  Termii) instead of only displaying it. */
