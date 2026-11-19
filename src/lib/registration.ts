@@ -130,7 +130,7 @@ export async function decideRegistration(
   });
 }
 
-/** Approve or reject one proposed parent–child link. */
+/** Approve or reject one proposed parent-child link. */
 export async function decidePupilLink(
   linkId: string,
   approve: boolean,
@@ -171,7 +171,7 @@ export async function fetchPendingProfiles(
   return (data as Profile[] | null) ?? [];
 }
 
-/** Proposed (Pending) parent–child links in this school, with the
+/** Proposed (Pending) parent-child links in this school, with the
  *  parent and pupil names attached for the approvals list. */
 export type PendingLink = ParentChild & {
   parent_name: string;
