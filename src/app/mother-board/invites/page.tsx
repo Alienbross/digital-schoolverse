@@ -50,7 +50,7 @@ export default function MotherBoardInvites() {
       setBusy(false);
       return;
     }
-    setLastLink(inviteLink(res.invite.token));
+    setLastLink(inviteLink(res.invite.token, school.slug));
     setMsg(`Invite created for ${email.trim()} — ${role.replace("_", " ")} at ${school.name}. Share the link below.`);
     setEmail("");
     setBusy(false);
@@ -65,7 +65,8 @@ export default function MotherBoardInvites() {
 
   const resend = (inv: SchoolInvite) => {
     // No email is sent yet — "resend" re-shows the live link to share.
-    setLastLink(inviteLink(inv.token));
+    const school = schools.find((s) => s.id === inv.school_id);
+    setLastLink(inviteLink(inv.token, school?.slug ?? null));
     setMsg(`Invite link for ${inv.email} is shown below — share it again. (Live email sending plugs in later.)`);
   };
 
