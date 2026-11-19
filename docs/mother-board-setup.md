@@ -126,3 +126,23 @@ values ('<PASTE-THE-UUID-HERE>', 'alien4bross@gmail.com', 'Iferetimi', 'platform
 - Suspended profiles are blocked in the app shell; suspended schools
   cannot be used by their admins (their rows are still there, so
   unsuspending restores them).
+
+## 8. School logos
+
+Run migration `0003_school_logos.sql` in the Supabase SQL editor (after
+0002). It creates the public Storage bucket `school-logos` (PNG / JPG /
+WebP, max 2 MB) with policies: anyone may read a logo, only the platform
+owner or that school's own school_admin may upload, replace or delete it.
+
+- A school admin uploads their logo in **School Setup** (or the owner
+  does it from the Mother Board → Schools → Control). The file is stored
+  at `<school_id>/logo.<ext>` and its public URL is saved in
+  `schools.logo_url`.
+- The logo then shows in the school portal header for every user of that
+  school (admin, teachers, students, parents), on the sign-in page when
+  they arrive via an invite, on the invite-accept page, and at the top
+  of each pupil's term report card (Students → Report card →). The
+  Mother Board itself keeps the Digital SchoolVerse branding.
+- Schools with no logo yet show their initials instead. If the bucket
+  already exists from an earlier manual setup, the migration updates it
+  in place; no data is lost.
