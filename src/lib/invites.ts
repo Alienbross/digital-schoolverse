@@ -7,10 +7,14 @@ import type { Role, SchoolInvite } from "@/lib/types";
  *  it (WhatsApp, email, SMS). Live email sending plugs in here later:
  *  send this link from the server (Supabase Edge Function / Resend /
  *  Termii) instead of only displaying it. */
-export function inviteLink(token: string) {
+export function inviteLink(token: string, slug?: string | null) {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "";
-  return `${origin}/invite/${token}`;
+  // A school invite carries the school's path, so the person lands in
+  // that school's portal: /greenfield/invite/<token>. Without a slug
+  // it falls back to the plain /invite/<token> link.
+  const path = slug ? `/${slug}/invite/${token}` : `/invite/${token}`;
+  return `${origin}${path}`;
 }
 
 export function newInviteToken() {
