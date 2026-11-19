@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { createInvite, inviteLink } from "@/lib/invites";
 import type { School } from "@/lib/types";
 import { schoolCounts } from "@/lib/mother-board";
+import { SchoolLogo } from "@/components/school-logo";
 import { btnCls, Card, inputCls, labelCls } from "@/components/ui";
 
 type Counts = { students: number; teachers: number; parents: number; openComplaints: number };
@@ -150,9 +151,12 @@ export default function MotherBoardSchools() {
                 return (
                   <li key={s.id} className="rounded-lg bg-mist px-3 py-3">
                     <div className="flex items-center justify-between gap-2">
-                      <span>
-                        <strong>{s.name}</strong>{" "}
-                        <span className="text-xs text-slate-500">{s.plan} · {s.status}</span>
+                      <span className="flex items-center gap-2">
+                        <SchoolLogo name={s.name} logoUrl={s.logo_url} size={32} />
+                        <span>
+                          <strong>{s.name}</strong>{" "}
+                          <span className="text-xs text-slate-500">{s.plan} · {s.status}</span>
+                        </span>
                       </span>
                       <Link href={`/mother-board/schools/${s.id}`} className="shrink-0 font-semibold text-royal">
                         Control →
