@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth, useCanManage } from "@/lib/auth";
 import { useWorkspaceBase } from "@/lib/slug";
@@ -22,6 +23,21 @@ export default function Overview() {
   // On a school path (/greenfield) links stay inside that school's path.
   const base = useWorkspaceBase();
   const canManage = useCanManage();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Teachers, students and parents land in their own workspace, not
+  // on the admin overview — send them there when they open the root
+  // of a school portal (login already does this; this covers a
+  // bookmarked /greenfield or a plain / visit).
+  useEffect(() => {
+    if (authLoading || !profile) return;
+    const atRoot = pathname === "/" || pathname === base;
+    if (!atRoot) return;
+    if (profile.role === "teacher") router.replace(`${base}/teacher`);
+    else if (profile.role === "student") router.replace(`${base}/student`);
+    else if (profile.role === "parent") router.replace(`${base}/parent`);
+  }, [authLoading, profile, pathname, base, router]);
   const [counts, setCounts] = useState<Counts>({
     schools: 0,
     classes: 0,
@@ -92,8 +108,10 @@ export default function Overview() {
       <ConfigBanner />
       {profile && !canManage && (
         <div className="mb-4 rounded-xl border border-skybrand/40 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-          Signed in as {profile.role.replace("_", " ")} — this is a read-only
-          view for now. Your full dashboard is coming next.
+          Signed in as {profile.role.replace("_", " ")} — your workspace is{" "}
+          <Link href={`${base}/${profile.role}`} className="font-semibold text-royal">
+            here →
+          </Link>
         </div>
       )}
       <PageHeader
@@ -137,11 +155,9 @@ export default function Overview() {
         </ul>
       </Card>
       <p className="mt-6 text-xs text-slate-400">
-        Advanced (already built in the Muse portal, to be ported next): AI
-        Teacher Assistant · Online fee payment · CBT &amp; auto-marking ·
-        Advanced analytics · SMS &amp; WhatsApp alerts · Parent weekly
-        summaries · Bus, clinic &amp; discipline · Multi-branch &amp; custom
-        report cards · Online complaint forms.
+        Teacher, Student and Parent workspaces are live in this build:
+        registers, scores, homework, timetables, CBT practice, fees,
+        complaints, messages and AI drafting assistants.
       </p>
     </div>
   );
