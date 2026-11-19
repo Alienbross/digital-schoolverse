@@ -44,14 +44,37 @@ Without env vars the app still builds and runs, but shows a
 1. Create a project at supabase.com (free tier; it pauses after a week idle —
    fine for the pilot, move to Pro $25/mo before charging schools).
 2. In the Supabase SQL editor, run
-   `supabase/migrations/0001_initial_schema.sql`.
+   `supabase/migrations/0001_initial_schema.sql`, then
+   `supabase/migrations/0002_auth_and_mother_board.sql`.
 3. Copy the project URL + anon key (Settings → API) into `.env.local`.
 
-> **Security note:** the migration enables RLS with a permissive pilot
-> policy (`anon` can read/write everything) so the pilot works with no auth
-> setup. **Before charging schools, replace it** with auth-based policies
-> that check the caller's `school_id` (Supabase Auth + JWT claims), and add
-> role logins (school admin / teacher / parent / student).
+## Auth + Mother Board (live in this build)
+
+- **Sign-in** at `/login` (Supabase Auth, email + password). Roles:
+  `platform_owner` (Mother Board, full control), `school_admin` (own
+  school only), `teacher` / `student` / `parent` (read-only for now —
+  their full dashboards are ported next).
+- **Mother Board** at `/mother-board`: Overview, Schools (create /
+  suspend / delete, plan Basics/Advanced), School Control (per-school
+  people + generate logins), Logins & People (suspend, reset password,
+  delete), Invites, Analytics, Plans, Support (complaints, urgent
+  first), Access Model.
+- **Invites**: generating an invite creates a record with a token and
+  a 7-day expiry; the invite link is `/invite/<token>`. The invitee
+  sets a password and logs in. **No email is sent by the app yet** —
+  the Mother Board shows the link and the owner shares it.
+- **First owner login**: create the user in Supabase → Authentication
+  → Users, then insert their `profiles` row with role
+  `platform_owner` in the SQL editor. Full steps in
+  `docs/mother-board-setup.md`.
+- **Light / Dark theme**: toggle in the header on every page (Light
+  default `#F8FAFC`, Dark deep navy `#0B1220`), choice saved.
+
+> **Security:** migration 0002 replaces the pilot open RLS policy with
+> auth-based policies — platform owner sees everything, school users
+> see only their own school, and only the owner / school admin may
+> write school data. The owner profile can only be created in the SQL
+> editor, never through the app.
 
 ## Deploy (free pilot)
 
@@ -64,11 +87,13 @@ Without env vars the app still builds and runs, but shows a
    school; add the bought domain (e.g. `app.digitalschoolverse.com`,
    ~₦14,000–₦18,000/year for .com) later in Vercel → Domains.
 
-## What still needs the user (nothing here is deployed yet)
+## What still needs the user
 
-- **GitHub account / repo** — code lives only on this VM until it is pushed.
-- **Supabase project + keys** — no real database exists yet.
-- **Vercel account** — no live link exists yet.
+- **Run migration 0002** in the Supabase SQL editor (see above) —
+  until then the live site still works the old unauthenticated way.
+- **Create the platform-owner login** (Supabase Dashboard + one SQL
+  insert) — see `docs/mother-board-setup.md`.
+- **Pilot school** — one real school to test end to end before opening registration.
 - **Domain** — not bought yet.
 - **Paystack live keys** — online fee payment is a test checkout until then.
 - **SMS/WhatsApp provider** — alerts are a test send until a provider is connected.
