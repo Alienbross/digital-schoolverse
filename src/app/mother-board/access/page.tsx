@@ -2,25 +2,25 @@ import { Card, PageHeader } from "@/components/ui";
 
 const ROWS: { who: string; can: string[]; cannot: string[] }[] = [
   {
-    who: "Platform owner — Mother Board (you)",
+    who: "Platform owner - Mother Board (you)",
     can: [
       "Create, suspend and delete schools; set any school's plan (Basics / Advanced) and status (Trial / Active / Suspended).",
-      "Generate, resend, revoke and reset ANY login — school admin, teacher, student or parent — in any school.",
+      "Generate, resend, revoke and reset ANY login - school admin, teacher, student or parent - in any school.",
       "See every school's people, complaints, fees and analytics across the whole platform.",
       "Delete a school and all of its data.",
     ],
-    cannot: ["Nothing is out of reach — full control over everything."],
+    cannot: ["Nothing is out of reach - full control over everything."],
   },
   {
-    who: "School admin — one school",
+    who: "School admin - one school",
     can: [
       "Set up their own school: profile, terms, classes, subjects, students, teachers, parents.",
       "Generate logins for their own teachers, students and parents, and reset them.",
-      "See only their own school's data — never another school's.",
+      "See only their own school's data - never another school's.",
     ],
     cannot: [
       "Cannot create a new school, see other schools, or open the Mother Board.",
-      "Cannot change their own plan — they request an upgrade from the platform owner.",
+      "Cannot change their own plan - they request an upgrade from the platform owner.",
       "Cannot see or change platform-wide analytics or billing.",
     ],
   },
@@ -77,7 +77,7 @@ export default function AccessModel() {
       <p className="mt-4 text-xs text-slate-400">
         How it works: every login has a profile row (role + school). Every
         database row carries a school_id, and the database itself refuses
-        rows from another school — even if someone calls the API directly.
+        rows from another school - even if someone calls the API directly.
         The platform owner is the only role with no school_id, and the only
         role that can see everything.
       </p>
