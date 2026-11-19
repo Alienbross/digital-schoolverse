@@ -37,7 +37,7 @@ export default function MotherBoardSchools() {
       setCopied(key);
       setTimeout(() => setCopied(""), 2000);
     } catch {
-      /* clipboard unavailable — the link text is visible to copy by hand */
+      /* clipboard unavailable - the link text is visible to copy by hand */
     }
   };
 
@@ -88,14 +88,14 @@ export default function MotherBoardSchools() {
         (error?.message ?? "").toLowerCase().includes("duplicate");
       setMsg(
         taken
-          ? `Could not create school: the short name "${cleanSlug}" is already taken — try another.`
+          ? `Could not create school: the short name "${cleanSlug}" is already taken - try another.`
           : `Could not create school: ${error?.message ?? "unknown error"}`,
       );
       setBusy(false);
       return;
     }
     const school = data as School;
-    let note = `School ${school.name} created (Trial, ${plan}) — its address is ${schoolPath(school.slug)}.`;
+    let note = `School ${school.name} created (Trial, ${plan}) - its address is ${schoolPath(school.slug)}.`;
     if (adminEmail.trim()) {
       const res = await createInvite({
         email: adminEmail.trim(),
@@ -106,7 +106,7 @@ export default function MotherBoardSchools() {
       });
       if (res.invite) {
         setInviteUrl(inviteLink(res.invite.token, school.slug));
-        note += " Admin invite created — share the link below.";
+        note += " Admin invite created - share the link below.";
       } else {
         note += ` But the admin invite failed: ${res.error}`;
       }
@@ -134,7 +134,7 @@ export default function MotherBoardSchools() {
         (error.message ?? "").toLowerCase().includes("duplicate");
       setMsg(
         taken
-          ? `Could not save short name: "${cleanSlug}" is already taken — try another.`
+          ? `Could not save short name: "${cleanSlug}" is already taken - try another.`
           : `Could not save short name: ${error.message}`,
       );
       return;
@@ -172,10 +172,10 @@ export default function MotherBoardSchools() {
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
       {inviteUrl && (
         <Card>
-          <h2 className="mb-2 font-semibold">Admin invite link — share it with the school admin</h2>
+          <h2 className="mb-2 font-semibold">Admin invite link - share it with the school admin</h2>
           <p className="mb-2 break-all rounded-lg bg-mist px-3 py-2 font-mono text-xs">{inviteUrl}</p>
           <p className="text-xs text-slate-500">
-            No email is sent yet — copy this link and send it yourself (email, WhatsApp, SMS). Live email sending plugs in later.
+            No email is sent yet - copy this link and send it yourself (email, WhatsApp, SMS). Live email sending plugs in later.
           </p>
           <button
             className="mt-2 text-sm font-semibold text-royal"
@@ -198,7 +198,7 @@ export default function MotherBoardSchools() {
               </div>
               <p className="mt-1 text-xs text-slate-400">
                 Lowercase letters, numbers and hyphens only. This is the
-                school&apos;s address: {slug ? schoolPath(slugify(slug) || "greenfield") : "/greenfield"} — suggested from the name, change it if you like.
+                school&apos;s address: {slug ? schoolPath(slugify(slug) || "greenfield") : "/greenfield"} - suggested from the name, change it if you like.
               </p>
             </div>
             <div><label className={labelCls}>School email</label><input className={inputCls} type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
@@ -207,7 +207,7 @@ export default function MotherBoardSchools() {
               <select className={inputCls} value={plan} onChange={(e) => setPlan(e.target.value)}>
                 <option>Basics</option><option>Advanced</option>
               </select></div>
-            <div><label className={labelCls}>School admin email (optional — creates their invite now)</label><input className={inputCls} type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="admin@school.com" /></div>
+            <div><label className={labelCls}>School admin email (optional - creates their invite now)</label><input className={inputCls} type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="admin@school.com" /></div>
             <button className={btnCls} disabled={busy}>Create school</button>
           </form>
           <p className="mt-3 text-xs text-slate-400">
@@ -257,7 +257,7 @@ export default function MotherBoardSchools() {
                           </Link>
                         </>
                       ) : (
-                        <span className="text-slate-400">No web address yet — set a short name below.</span>
+                        <span className="text-slate-400">No web address yet - set a short name below.</span>
                       )}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
