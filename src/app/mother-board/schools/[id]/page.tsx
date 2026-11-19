@@ -55,7 +55,7 @@ export default function SchoolControl() {
         (error.message ?? "").toLowerCase().includes("duplicate");
       setMsg(
         taken
-          ? `Could not save short name: "${cleanSlug}" is already taken — try another.`
+          ? `Could not save short name: "${cleanSlug}" is already taken - try another.`
           : `Could not save short name: ${error.message}`,
       );
       return;
@@ -166,13 +166,13 @@ export default function SchoolControl() {
             </Link>
           </>
         ) : (
-          <span className="text-slate-400">No web address yet — set a short name below.</span>
+          <span className="text-slate-400">No web address yet - set a short name below.</span>
         )}
       </p>
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
       {inviteUrl && (
         <Card>
-          <h2 className="mb-2 font-semibold">Invite link — share it</h2>
+          <h2 className="mb-2 font-semibold">Invite link - share it</h2>
           <p className="mb-2 break-all rounded-lg bg-mist px-3 py-2 font-mono text-xs">{inviteUrl}</p>
           <button className="text-sm font-semibold text-royal" onClick={() => navigator.clipboard?.writeText(inviteUrl)}>
             Copy link
@@ -203,7 +203,7 @@ export default function SchoolControl() {
           </div>
           <p className="mt-2 text-xs text-slate-400">
             Lowercase letters, numbers and hyphens only. Changing it moves
-            the school&apos;s address — old links stop working, so tell the
+            the school&apos;s address - old links stop working, so tell the
             school.
           </p>
           <button className={`${btnCls} mt-3`} onClick={saveSlug}>
@@ -221,7 +221,7 @@ export default function SchoolControl() {
             {linkOptions.length > 0 && (
               <div><label className={labelCls}>Link to existing record (optional)</label>
                 <select className={inputCls} value={linkId} onChange={(e) => setLinkId(e.target.value)}>
-                  <option value="">— No link —</option>
+                  <option value="">- No link -</option>
                   {linkOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
                 </select></div>
             )}
