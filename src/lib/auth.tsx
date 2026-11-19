@@ -223,8 +223,10 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-/** True when the signed-in user may write school data: platform owner or
- *  the school's admin. Teachers, students and parents are read-only. */
+/** True when the signed-in user may manage school data: platform owner
+ *  or the school's admin. Teachers, students and parents write only
+ *  their own scoped rows (registers, scores, attempts, complaints,
+ *  payments — migration 0005); they cannot manage school setup. */
 export function useCanManage() {
   const { profile } = useAuth();
   return (
