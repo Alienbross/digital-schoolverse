@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { useAuth, useCanManage } from "@/lib/auth";
 import type { Parent, ParentChild, School, Student } from "@/lib/types";
 import {
   btnCls,
@@ -13,6 +14,9 @@ import {
 } from "@/components/ui";
 
 export default function Parents() {
+  const { schoolId, profile, loading: authLoading } = useAuth();
+  const canManage = useCanManage();
+  const readOnly = !!profile && !canManage;
   const [school, setSchool] = useState<School | null>(null);
   const [parents, setParents] = useState<Parent[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
@@ -27,21 +31,26 @@ export default function Parents() {
   const [msg, setMsg] = useState("");
 
   const load = async () => {
-    const { data: s } = await supabase.from("schools").select("*").order("created_at").limit(1).single();
+    const { data: s } = schoolId
+      ? await supabase.from("schools").select("*").eq("id", schoolId).single()
+      : await supabase.from("schools").select("*").order("created_at").limit(1).single();
     if (!s) return;
     setSchool(s);
     const { data: p } = await supabase.from("parents").select("*").eq("school_id", s.id).order("last_name");
     setParents(p ?? []);
     const { data: st } = await supabase.from("students").select("*").eq("school_id", s.id).order("last_name");
     setStudents(st ?? []);
-    const { data: l } = await supabase.from("parent_children").select("*");
+    const parentIds = (p ?? []).map((x) => x.id);
+    const { data: l } = parentIds.length
+      ? await supabase.from("parent_children").select("*").in("parent_id", parentIds)
+      : { data: [] as ParentChild[] };
     setLinks(l ?? []);
   };
 
   useEffect(() => {
-    if (isSupabaseConfigured) load();
+    if (isSupabaseConfigured && !authLoading) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading, schoolId]);
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +95,11 @@ export default function Parents() {
     <div>
       <ConfigBanner />
       <PageHeader title="Parents" sub="Parents, linked to their children — siblings share one parent record." />
+      {readOnly && (
+        <div className="mb-4 rounded-xl border border-skybrand/40 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          Signed in as {profile?.role.replace("_", " ")} — read-only view.
+        </div>
+      )}
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-4">
@@ -98,7 +112,7 @@ export default function Parents() {
               </div>
               <div><label className={labelCls}>Phone</label><input className={inputCls} value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
               <div><label className={labelCls}>Email</label><input className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-              <button className={btnCls} disabled={!isSupabaseConfigured}>Add parent</button>
+              <button className={btnCls} disabled={!isSupabaseConfigured || readOnly}>Add parent</button>
             </form>
           </Card>
           <Card>
@@ -118,7 +132,7 @@ export default function Parents() {
                 <select className={inputCls} value={relationship} onChange={(e) => setRelationship(e.target.value)}>
                   <option>Mother</option><option>Father</option><option>Guardian</option>
                 </select></div>
-              <button className={btnCls} disabled={!isSupabaseConfigured}>Link</button>
+              <button className={btnCls} disabled={!isSupabaseConfigured || readOnly}>Link</button>
             </form>
           </Card>
         </div>
