@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { useAuth, useCanManage } from "@/lib/auth";
 import type { ClassRow, School, Student } from "@/lib/types";
 import {
   btnCls,
@@ -13,6 +14,9 @@ import {
 } from "@/components/ui";
 
 export default function Students() {
+  const { schoolId, profile, loading: authLoading } = useAuth();
+  const canManage = useCanManage();
+  const readOnly = !!profile && !canManage;
   const [school, setSchool] = useState<School | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<ClassRow[]>([]);
@@ -29,7 +33,9 @@ export default function Students() {
   }, []);
 
   const load = async () => {
-    const { data: s } = await supabase.from("schools").select("*").order("created_at").limit(1).single();
+    const { data: s } = schoolId
+      ? await supabase.from("schools").select("*").eq("id", schoolId).single()
+      : await supabase.from("schools").select("*").order("created_at").limit(1).single();
     if (!s) return;
     setSchool(s);
     const { data: st } = await supabase.from("students").select("*").eq("school_id", s.id).order("created_at");
@@ -39,9 +45,9 @@ export default function Students() {
   };
 
   useEffect(() => {
-    if (isSupabaseConfigured) load();
+    if (isSupabaseConfigured && !authLoading) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading, schoolId]);
 
   const nextAdmissionNo = () => {
     return `DSV/${year}/${String(students.length + 1).padStart(4, "0")}`;
@@ -76,6 +82,11 @@ export default function Students() {
     <div>
       <ConfigBanner />
       <PageHeader title="Students" sub="Searchable register. Admission numbers are generated automatically — DSV/2026/0001, 0002…" />
+      {readOnly && (
+        <div className="mb-4 rounded-xl border border-skybrand/40 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          Signed in as {profile?.role.replace("_", " ")} — read-only view.
+        </div>
+      )}
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
@@ -93,7 +104,7 @@ export default function Students() {
                 {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select></div>
             <p className="text-xs text-slate-400">Next admission number: {nextAdmissionNo()}</p>
-            <button className={btnCls} disabled={!isSupabaseConfigured}>Add pupil</button>
+            <button className={btnCls} disabled={!isSupabaseConfigured || readOnly}>Add pupil</button>
           </form>
         </Card>
         <div className="md:col-span-2">
