@@ -10,7 +10,7 @@ export function ConfigBanner() {
       <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
       <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> from your Supabase project,
       then run the SQL in <code>supabase/migrations/</code>. Until then this
-      page shows an empty register — nothing is saved.
+      page shows an empty register - nothing is saved.
     </div>
   );
 }
