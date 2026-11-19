@@ -63,6 +63,17 @@ export default function StudentWorkspace() {
   const isPreview = profile?.role === "platform_owner" || profile?.role === "school_admin";
   const studentId = profile?.student_id ?? pickerStudentId;
   const me = students.find((s) => s.id === studentId);
+  // Pending accounts (migration 0006) may complete their profile/setup
+  // only — subjects, homework, results, attendance, CBT, tutor and
+  // help stay locked until a class teacher or the admin approves them.
+  const isPending = !isPreview && profile?.status === "Pending";
+  const [allClasses, setAllClasses] = useState<ClassRow[]>([]);
+  const [editFirst, setEditFirst] = useState("");
+  const [editLast, setEditLast] = useState("");
+  const [editClass, setEditClass] = useState("");
+  const [editGender, setEditGender] = useState("");
+  const [editDob, setEditDob] = useState("");
+  const [setupMsg, setSetupMsg] = useState("");
 
   const load = async () => {
     if (!schoolId) return;
@@ -75,6 +86,8 @@ export default function StudentWorkspace() {
     for (const r of (t as { id: string; first_name: string; last_name: string }[] | null) ?? [])
       map[r.id] = `${r.first_name} ${r.last_name}`;
     setTeachers(map);
+    const { data: cl } = await supabase.from("classes").select("*").eq("school_id", schoolId).order("name");
+    setAllClasses((cl as ClassRow[] | null) ?? []);
     setTerm(await fetchCurrentTerm(schoolId));
   };
 
@@ -82,6 +95,36 @@ export default function StudentWorkspace() {
     if (isSupabaseConfigured && !authLoading) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, schoolId]);
+
+  // Prefill the pending-setup form from my pupil record.
+  /* eslint-disable react-hooks/set-state-in-effect -- prefill from the loaded record, as elsewhere in this codebase */
+  useEffect(() => {
+    if (me) {
+      setEditFirst(me.first_name);
+      setEditLast(me.last_name);
+      setEditClass(me.class_id ?? "");
+      setEditGender(me.gender ?? "");
+      setEditDob(me.date_of_birth ?? "");
+    }
+  }, [me?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const saveMyDetails = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!me || !editFirst.trim() || !editLast.trim()) return;
+    const { error } = await supabase
+      .from("students")
+      .update({
+        first_name: editFirst.trim(),
+        last_name: editLast.trim(),
+        class_id: editClass || null,
+        gender: editGender || null,
+        date_of_birth: editDob || null,
+      })
+      .eq("id", me.id);
+    setSetupMsg(error ? `Could not save: ${error.message}` : "Your details are saved.");
+    if (!error) load();
+  };
 
   // Everything about this pupil, once we know who they are.
   useEffect(() => {
@@ -164,6 +207,59 @@ export default function StudentWorkspace() {
             </p>
           </Card>
         )}
+      </div>
+    );
+  }
+
+  // Pending setup only: complete your details while you wait for
+  // approval. Subjects, homework, results, attendance, CBT, tutor
+  // and help stay locked until a class teacher or the admin approves.
+  if (isPending && me) {
+    return (
+      <div>
+        <ConfigBanner />
+        <PageHeader
+          title={`Student workspace — ${me.first_name} ${me.last_name}`}
+          sub={`${me.admission_no} · Complete your details while you wait for approval.`}
+        />
+        <div className="max-w-lg">
+          {setupMsg && <p className="mb-4 text-sm font-medium text-royal">{setupMsg}</p>}
+          <Card>
+            <h2 className="mb-3 font-semibold">My details</h2>
+            <form onSubmit={saveMyDetails} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className={labelCls}>First name</label><input className={inputCls} value={editFirst} onChange={(e) => setEditFirst(e.target.value)} /></div>
+                <div><label className={labelCls}>Last name</label><input className={inputCls} value={editLast} onChange={(e) => setEditLast(e.target.value)} /></div>
+              </div>
+              <div>
+                <label className={labelCls}>My class</label>
+                <select className={inputCls} value={editClass} onChange={(e) => setEditClass(e.target.value)}>
+                  <option value="">— Choose your class —</option>
+                  {allClasses.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}{c.arm ? ` · Arm ${c.arm}` : ""}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelCls}>Gender</label>
+                  <select className={inputCls} value={editGender} onChange={(e) => setEditGender(e.target.value)}>
+                    <option value="">—</option>
+                    <option>Female</option>
+                    <option>Male</option>
+                  </select>
+                </div>
+                <div><label className={labelCls}>Date of birth</label><input className={inputCls} type="date" value={editDob} onChange={(e) => setEditDob(e.target.value)} /></div>
+              </div>
+              <button className={btnCls}>Save my details</button>
+            </form>
+          </Card>
+          <p className="mt-4 text-sm text-slate-500">
+            Your subjects, homework, results, attendance, CBT practice, AI
+            tutor and help open once your class teacher or the school admin
+            approves your account.
+          </p>
+        </div>
       </div>
     );
   }
