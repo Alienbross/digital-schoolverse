@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { createInvite, inviteLink } from "@/lib/invites";
 import type { Parent, Role, School, SchoolInvite, Student, Teacher } from "@/lib/types";
 import { schoolCounts } from "@/lib/mother-board";
+import { LogoUploadField, SchoolLogo } from "@/components/school-logo";
 import { btnCls, Card, inputCls, labelCls } from "@/components/ui";
 
 const ROLES: Role[] = ["school_admin", "teacher", "student", "parent"];
@@ -100,7 +101,10 @@ export default function SchoolControl() {
       <p className="mb-4 text-sm">
         <Link href="/mother-board/schools" className="font-semibold text-royal">← All schools</Link>
       </p>
-      <h2 className="mb-1 text-xl font-bold text-ink">{school.name}</h2>
+      <h2 className="mb-1 flex items-center gap-3 text-xl font-bold text-ink">
+        <SchoolLogo name={school.name} logoUrl={school.logo_url} size={44} />
+        {school.name}
+      </h2>
       <p className="mb-4 text-sm text-slate-500">
         {school.plan} plan · {school.status} · {counts.students} pupils · {counts.teachers} teachers ·{" "}
         {counts.parents} parents · {counts.openComplaints} open complaints
@@ -117,6 +121,15 @@ export default function SchoolControl() {
       )}
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <Card>
+          <h2 className="mb-3 font-semibold">School logo</h2>
+          <LogoUploadField
+            schoolId={school.id}
+            schoolName={school.name}
+            currentUrl={school.logo_url}
+            onChanged={() => load()}
+          />
+        </Card>
         <Card>
           <h2 className="mb-3 font-semibold">Generate a login for this school</h2>
           <form onSubmit={generateLogin} className="space-y-3">
