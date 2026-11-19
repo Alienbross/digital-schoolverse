@@ -61,13 +61,13 @@ export default function MotherBoardPlans() {
           "Foundation + Admin core, attendance, scores, fees, complaints, homework, messages, admissions.",
         )}
         {group(
-          "Advanced — behind the paywall",
+          "Advanced - behind the paywall",
           advanced,
           "AI Teacher Assistant, online fee payment, CBT, analytics, SMS/WhatsApp, weekly summaries, bus/clinic/discipline, multi-branch report cards, online complaint forms.",
         )}
       </div>
       <p className="mt-4 text-xs text-slate-400">
-        A school admin cannot change their own plan — they request an upgrade
+        A school admin cannot change their own plan - they request an upgrade
         and the platform owner moves them here. Real billing (Paystack) is
         not connected yet.
       </p>
