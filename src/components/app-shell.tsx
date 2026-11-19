@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
+import { firstSegment, isPublicPath } from "@/lib/slug";
 import type { School } from "@/lib/types";
 import { ThemeToggle } from "@/components/theme";
 import { SchoolLogo } from "@/components/school-logo";
@@ -41,15 +42,20 @@ const READ_ONLY_NAV = [
 const PUBLIC_PREFIXES = ["/login", "/invite", "/reset-password"];
 
 function isPublic(pathname: string) {
-  return PUBLIC_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
-  );
+  return isPublicPath(pathname);
+}
+
+/** Prefix a workspace link with the school's path base ("/greenfield"
+ *  -> "/greenfield/students"; plain routes unchanged). */
+function withBase(base: string, href: string) {
+  if (!base) return href;
+  return href === "/" ? base : `${base}${href}`;
 }
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { loading, user, profile, isOwner, ownerSchoolId, setOwnerSchoolId, signOut, schoolId } =
+  const { loading, user, profile, isOwner, ownerSchoolId, setOwnerSchoolId, signOut, schoolId, setPathSlug, pathSchool } =
     useAuth();
   const [schools, setSchools] = useState<School[]>([]);
   // The school whose portal this is — its logo brands the header for
@@ -59,13 +65,35 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   const authed = isSupabaseConfigured;
 
+  // The school path in the URL (/<slug>/…): tell the auth context so
+  // the session scopes to that school, and links stay inside it.
+  const base = (() => {
+    const seg = firstSegment(pathname);
+    return seg ? `/${seg}` : "";
+  })();
+  useEffect(() => {
+    setPathSlug(firstSegment(pathname) || null);
+  }, [pathname, setPathSlug]);
+
+  // The owner picking a school in the header opens that school's own
+  // path (e.g. /greenfield); picking "All schools" goes back to "/".
+  const pickSchool = useCallback((id: string) => {
+    setOwnerSchoolId(id || null);
+    if (!id) {
+      router.push("/");
+      return;
+    }
+    const school = schools.find((s) => s.id === id);
+    router.push(school?.slug ? `/${school.slug}` : "/");
+  }, [router, schools, setOwnerSchoolId]);
+
   useEffect(() => {
     if (!authed || loading || !user) return;
     if (!isOwner) return;
     (async () => {
       const { data } = await supabase
         .from("schools")
-        .select("id, name")
+        .select("id, name, slug")
         .order("name");
       setSchools((data as School[]) ?? []);
     })();
@@ -77,7 +105,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       setCurrentSchool(null);
       return;
     }
-    const id = profile.school_id ?? ownerSchoolId ?? null;
+    const id = schoolId ?? null;
     if (!id || isPublic(pathname) || pathname.startsWith("/mother-board")) {
       setCurrentSchool(null);
       return;
@@ -99,15 +127,15 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!authed || loading || isPublic(pathname)) return;
-    if (!user) router.replace("/login");
-  }, [authed, loading, user, pathname, router]);
+    if (!user) router.replace(base ? `${base}/login` : "/login");
+  }, [authed, loading, user, pathname, router, base]);
 
   // Public pages (login / invite / reset password): plain shell.
   if (isPublic(pathname)) {
     return (
       <div className="flex min-h-screen flex-col">
         <header className="flex items-center justify-between border-b border-line bg-white px-4 py-3">
-          <Link href="/" className="font-bold text-royal">
+          <Link href={base || "/"} className="font-bold text-royal">
             Digital SchoolVerse
           </Link>
           <ThemeToggle />
@@ -134,7 +162,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             {SCHOOL_NAV.map((item) => (
               <Link
                 key={item.href}
-                href={item.href}
+                href={withBase(base, item.href)}
                 className="rounded-lg px-3 py-2 text-sm font-medium text-white/85 hover:bg-white/10 hover:text-white"
               >
                 {item.label}
@@ -171,7 +199,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <main className="mx-auto w-full max-w-5xl px-4 py-12">
         <p className="text-sm text-slate-500">
           Sign in to continue…{" "}
-          <Link href="/login" className="font-semibold text-royal">
+          <Link href={base ? `${base}/login` : "/login"} className="font-semibold text-royal">
             Go to sign in →
           </Link>
         </p>
@@ -264,8 +292,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
             </label>
             <select
               className="w-full rounded-lg border border-white/20 bg-royal-deep px-2 py-2 text-sm text-white"
-              value={ownerSchoolId ?? ""}
-              onChange={(e) => setOwnerSchoolId(e.target.value || null)}
+              value={pathSchool?.id ?? ownerSchoolId ?? ""}
+              onChange={(e) => pickSchool(e.target.value)}
             >
               <option value="">— All schools (overview) —</option>
               {schools.map((s) => (
@@ -280,7 +308,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/60">
           {isOwner ? "School workspace" : "My school"}
         </p>
-        <nav className="flex flex-col gap-1">{navLinks(nav)}</nav>
+        <nav className="flex flex-col gap-1">{navLinks(nav.map((item) => ({ ...item, href: withBase(base, item.href) })))}</nav>
 
         <div className="mt-auto pt-8">
           <ThemeToggle />
@@ -316,7 +344,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
             {(isOwner ? [...MB_NAV, ...nav] : nav).map((item) => (
               <Link
                 key={item.href}
-                href={item.href}
+                href={
+                  item.href.startsWith("/mother-board")
+                    ? item.href
+                    : withBase(base, item.href)
+                }
                 className="whitespace-nowrap font-medium text-slate-600 hover:text-royal"
               >
                 {item.label}
@@ -326,8 +358,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
           {isOwner && (
             <select
               className="mt-2 w-full rounded-lg border border-line bg-white px-2 py-1.5 text-sm"
-              value={ownerSchoolId ?? ""}
-              onChange={(e) => setOwnerSchoolId(e.target.value || null)}
+              value={pathSchool?.id ?? ownerSchoolId ?? ""}
+              onChange={(e) => pickSchool(e.target.value)}
               aria-label="View school workspace as"
             >
               <option value="">— All schools (overview) —</option>
