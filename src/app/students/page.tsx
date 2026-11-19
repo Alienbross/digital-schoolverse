@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth, useCanManage } from "@/lib/auth";
 import type { ClassRow, School, Student } from "@/lib/types";
@@ -112,9 +113,12 @@ export default function Students() {
             <input className={`${inputCls} mb-3`} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or admission number…" />
             <ul className="space-y-2 text-sm">
               {filtered.map((s) => (
-                <li key={s.id} className="flex items-center justify-between rounded-lg bg-mist px-3 py-2">
+                <li key={s.id} className="flex items-center justify-between gap-2 rounded-lg bg-mist px-3 py-2">
                   <span><strong>{s.first_name} {s.last_name}</strong> · {classNameOf(s.class_id)}</span>
-                  <span className="font-mono text-xs text-slate-500">{s.admission_no}</span>
+                  <span className="flex shrink-0 items-center gap-3">
+                    <Link href={`/students/${s.id}/report-card`} className="font-semibold text-royal">Report card →</Link>
+                    <span className="font-mono text-xs text-slate-500">{s.admission_no}</span>
+                  </span>
                 </li>
               ))}
               {filtered.length === 0 && <li className="text-slate-400">No pupils yet — add the first one.</li>}
