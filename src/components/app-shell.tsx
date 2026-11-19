@@ -9,10 +9,13 @@ import { firstSegment, isPublicPath } from "@/lib/slug";
 import type { School } from "@/lib/types";
 import { ThemeToggle } from "@/components/theme";
 import { SchoolLogo } from "@/components/school-logo";
+import NotificationsBell from "@/components/notifications-bell";
+import { PendingBanner } from "@/components/pending-banner";
 
 const SCHOOL_NAV = [
   { href: "/", label: "Overview" },
   { href: "/setup", label: "School Setup" },
+  { href: "/registration", label: "Registration & Approvals" },
   { href: "/classes", label: "Classes & Arms" },
   { href: "/subjects", label: "Subjects" },
   { href: "/students", label: "Students" },
@@ -328,7 +331,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <nav className="flex flex-col gap-1">{navLinks(nav.map((item) => ({ ...item, href: withBase(base, item.href) })))}</nav>
 
         <div className="mt-auto pt-8">
-          <ThemeToggle />
+          <NotificationsBell />
+          <div className="mt-3">
+            <ThemeToggle />
+          </div>
           <p className="mt-3 text-xs text-white/70">
             {profile.display_name ?? profile.email}
             <br />
@@ -355,7 +361,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 <span className="font-bold text-royal">{currentSchool.name}</span>
               </span>
             )}
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <NotificationsBell />
+              <ThemeToggle />
+            </div>
           </div>
           <nav className="mt-2 flex gap-3 overflow-x-auto text-sm">
             {(isOwner ? [...MB_NAV, ...nav] : nav).map((item) => (
@@ -395,6 +404,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           </p>
         </header>
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+          {profile && <PendingBanner profile={profile} />}
           {children}
         </main>
       </div>
