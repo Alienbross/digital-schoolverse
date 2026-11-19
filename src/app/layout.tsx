@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Digital SchoolVerse — School Portal",
+  title: "Digital SchoolVerse - School Portal",
   description:
     "One online platform for primary and secondary schools, parents, teachers and students.",
 };
