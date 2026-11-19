@@ -1,10 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { PENDING_INVITE_KEY, useAuth } from "@/lib/auth";
 import { completeInvite } from "@/lib/invites";
+import {
+  PENDING_REGISTRATION_KEY,
+  registerSelf,
+  type RegistrationInput,
+} from "@/lib/registration";
 import { fetchSchoolBranding, type SchoolBranding } from "@/lib/logo";
 import { fetchSchoolBySlug } from "@/lib/slug";
 import { SchoolLogo } from "@/components/school-logo";
@@ -51,7 +57,8 @@ export default function Login({ schoolSlug }: { schoolSlug?: string }) {
     })();
   }, [schoolSlug]);
 
-  // Already signed in: finish any pending invite, then send them onward.
+  // Already signed in: finish any pending invite or registration,
+  // then send them onward.
   // Each role lands in its own workspace: the platform owner on the
   // Mother Board, the school admin on the school overview, and
   // teachers / students / parents in their own workspaces
@@ -67,6 +74,22 @@ export default function Login({ schoolSlug }: { schoolSlug?: string }) {
         }
       } catch {
         /* ignore */
+      }
+      // A self-registration created while email confirmation was on:
+      // finish it now that the user is signed in.
+      try {
+        const raw = localStorage.getItem(PENDING_REGISTRATION_KEY);
+        if (raw) {
+          const input = JSON.parse(raw) as RegistrationInput;
+          const res = await registerSelf(input);
+          if (res.ok) {
+            localStorage.removeItem(PENDING_REGISTRATION_KEY);
+          } else {
+            setMsg(res.error ?? "Could not finish your registration.");
+          }
+        }
+      } catch {
+        /* ignore — the user can re-register from the school link */
       }
       // Read the profile fresh — a brand-new invite user has no profile
       // in context yet (completeInvite just created it).
@@ -205,9 +228,24 @@ export default function Login({ schoolSlug }: { schoolSlug?: string }) {
           )}
         </Card>
         <p className="mt-4 text-sm text-slate-500">
-          No account yet? You need an invite: the platform owner (Mother
-          Board) or your school admin generates one and shares the link with
-          you. Open that link, set your password, and you are in.
+          No account yet?{" "}
+          {schoolSlug ? (
+            <>
+              Register at your school — no invite needed:{" "}
+              <Link href={`/${schoolSlug}/register`} className="font-semibold text-royal">
+                /{schoolSlug}/register →
+              </Link>{" "}
+              School admins are still invited by the platform owner from the
+              Mother Board.
+            </>
+          ) : (
+            <>
+              Teachers, students and parents register from their
+              school&apos;s own link (ask your school admin for it — it looks
+              like digital-schoolverse.vercel.app/your-school/register). School
+              admins are invited by the platform owner from the Mother Board.
+            </>
+          )}
         </p>
       </div>
     </div>
