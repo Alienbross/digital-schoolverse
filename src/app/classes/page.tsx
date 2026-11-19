@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { useAuth, useCanManage } from "@/lib/auth";
 import type { Branch, ClassRow, School, Teacher } from "@/lib/types";
 import {
   btnCls,
@@ -13,6 +14,9 @@ import {
 } from "@/components/ui";
 
 export default function Classes() {
+  const { schoolId, profile, loading: authLoading } = useAuth();
+  const canManage = useCanManage();
+  const readOnly = !!profile && !canManage;
   const [school, setSchool] = useState<School | null>(null);
   const [classes, setClasses] = useState<ClassRow[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -27,7 +31,9 @@ export default function Classes() {
   const [msg, setMsg] = useState("");
 
   const load = async () => {
-    const { data: s } = await supabase.from("schools").select("*").order("created_at").limit(1).single();
+    const { data: s } = schoolId
+      ? await supabase.from("schools").select("*").eq("id", schoolId).single()
+      : await supabase.from("schools").select("*").order("created_at").limit(1).single();
     if (!s) return;
     setSchool(s);
     const { data: c } = await supabase.from("classes").select("*").eq("school_id", s.id).order("name");
@@ -39,9 +45,9 @@ export default function Classes() {
   };
 
   useEffect(() => {
-    if (isSupabaseConfigured) load();
+    if (isSupabaseConfigured && !authLoading) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading, schoolId]);
 
   const addClass = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,6 +90,11 @@ export default function Classes() {
     <div>
       <ConfigBanner />
       <PageHeader title="Classes & Arms" sub="Stages, capacity and class teachers. Classes belong to a branch — everything saved before branches stays on Main." />
+      {readOnly && (
+        <div className="mb-4 rounded-xl border border-skybrand/40 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          Signed in as {profile?.role.replace("_", " ")} — read-only view.
+        </div>
+      )}
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -108,7 +119,7 @@ export default function Classes() {
                 <option value="">— None yet —</option>
                 {teachers.map((t) => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
               </select></div>
-            <button className={btnCls} disabled={!isSupabaseConfigured}>Add class</button>
+            <button className={btnCls} disabled={!isSupabaseConfigured || readOnly}>Add class</button>
           </form>
         </Card>
         <div className="space-y-4">
@@ -116,7 +127,7 @@ export default function Classes() {
             <h2 className="mb-3 font-semibold">Branches</h2>
             <form onSubmit={addBranch} className="mb-3 flex gap-2">
               <input className={inputCls} value={branchName} onChange={(e) => setBranchName(e.target.value)} placeholder="e.g. Lekki Campus" />
-              <button className={btnCls} disabled={!isSupabaseConfigured}>Add</button>
+              <button className={btnCls} disabled={!isSupabaseConfigured || readOnly}>Add</button>
             </form>
             <ul className="space-y-1 text-sm">
               {branches.map((b) => <li key={b.id}>{b.name} {b.is_main && <span className="text-xs text-slate-400">(Main)</span>}</li>)}
