@@ -42,7 +42,7 @@ export default function MotherBoardSupport() {
   }, []);
 
   const schoolName = (id: string) =>
-    schools.find((s) => s.id === id)?.name ?? "—";
+    schools.find((s) => s.id === id)?.name ?? "-";
 
   const setStatus = async (c: ComplaintRow, status: string) => {
     const patch: Record<string, unknown> = { status };
