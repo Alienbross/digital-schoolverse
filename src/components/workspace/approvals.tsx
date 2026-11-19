@@ -224,7 +224,7 @@ export default function ApprovalsList({
                           onChange={(e) =>
                             setRejectReason((prev) => ({ ...prev, [p.id]: e.target.value }))
                           }
-                          placeholder="e.g. Wrong class — re-register"
+                          placeholder="e.g. Wrong class - re-register"
                         />
                       </div>
                       <button
