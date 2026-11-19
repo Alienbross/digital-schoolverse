@@ -1,6 +1,7 @@
 export type School = {
   id: string;
   name: string;
+  slug: string | null;
   motto: string | null;
   email: string | null;
   phone: string | null;
