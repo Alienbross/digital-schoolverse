@@ -27,6 +27,9 @@ is the real app that can be deployed and shared.
   analytics, SMS/WhatsApp, weekly summaries, bus/clinic/discipline,
   multi-branch report cards, online complaint forms) are built in the Muse
   portal and are ported next, in that order — see `src/app/plan/page.tsx`.
+  The Teacher, Student and Parent workspaces are now ported (migration
+  0005): registers, scores, homework, CBT practice, fees with a test
+  checkout, complaints, messages and AI drafting assistants.
 
 ## Run locally
 
@@ -48,15 +51,24 @@ Without env vars the app still builds and runs, but shows a
    `supabase/migrations/0002_auth_and_mother_board.sql`, then
    `supabase/migrations/0003_school_logos.sql` (school logos bucket),
    then `supabase/migrations/0004_school_slugs.sql` (per-school path
-   URLs — each school gets its own address, e.g. `/greenfield`).
+   URLs — each school gets its own address, e.g. `/greenfield`), then
+   `supabase/migrations/0005_role_workspaces.sql` (scoped write access
+   for teacher / student / parent roles — registers, scores, CBT
+   attempts, complaints, messages, test fee payments).
 3. Copy the project URL + anon key (Settings → API) into `.env.local`.
 
 ## Auth + Mother Board (live in this build)
 
 - **Sign-in** at `/login` (Supabase Auth, email + password). Roles:
   `platform_owner` (Mother Board, full control), `school_admin` (own
-  school only), `teacher` / `student` / `parent` (read-only for now —
-  their full dashboards are ported next).
+  school only), `teacher` / `student` / `parent` — each lands in their
+  own workspace after sign-in (`/<slug>/teacher`, `/<slug>/student`,
+  `/<slug>/parent`): registers and scores for teachers, results/CBT
+  practice for students, children/fees/complaints for parents. A teacher
+  only sees their classes and subjects, a student only their own records,
+  a parent only their linked children (scoped writes: migration 0005).
+  The owner / school admin can preview any role workspace by picking
+  the person at the top of the page.
 - **Mother Board** at `/mother-board`: Overview, Schools (create /
   suspend / delete, plan Basics/Advanced), School Control (per-school
   people + generate logins), Logins & People (suspend, reset password,
@@ -102,6 +114,10 @@ Without env vars the app still builds and runs, but shows a
 
 ## What still needs the user
 
+- **Run migration 0005** in the Supabase SQL editor (see above) —
+  until then teachers cannot save registers/scores, students cannot
+  submit CBT attempts, and parents cannot pay online or raise
+  complaints (migration 0002 only let admins write).
 - **Run migration 0002** in the Supabase SQL editor (see above) —
   until then the live site still works the old unauthenticated way.
 - **Create the platform-owner login** (Supabase Dashboard + one SQL
