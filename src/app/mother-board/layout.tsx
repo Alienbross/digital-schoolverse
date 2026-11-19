@@ -8,7 +8,7 @@ export default function MotherBoardLayout({ children }: { children: ReactNode })
       <ConfigBanner />
       <PageHeader
         title="Mother Board"
-        sub="Platform owner — full control over every school, login and plan on Digital SchoolVerse."
+        sub="Platform owner - full control over every school, login and plan on Digital SchoolVerse."
       />
       {children}
     </RequireOwner>
