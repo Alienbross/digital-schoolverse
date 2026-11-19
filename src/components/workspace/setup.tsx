@@ -102,7 +102,7 @@ export default function Setup() {
   };
 
   // Registration phases (migration 0006): open teachers, then
-  // students, then parents — or all three at once.
+  // students, then parents - or all three at once.
   const togglePhase = async (
     role: "teacher" | "student" | "parent",
     open: boolean,
@@ -140,7 +140,7 @@ export default function Setup() {
       <PageHeader title="School Setup" sub="School profile, sessions and terms." />
       {profile && !canManage && (
         <div className="mb-4 rounded-xl border border-skybrand/40 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-          Signed in as {profile.role.replace("_", " ")} — read-only view.
+          Signed in as {profile.role.replace("_", " ")} - read-only view.
         </div>
       )}
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
@@ -148,8 +148,8 @@ export default function Setup() {
         <Card>
           <h2 className="mb-3 font-semibold">Registration phases</h2>
           <p className="mb-3 text-sm text-slate-500">
-            Open registration in order — teachers first, then students, then
-            parents — so pupils exist before parents link them. You can also
+            Open registration in order - teachers first, then students, then
+            parents - so pupils exist before parents link them. You can also
             open all three at once. A closed phase shows “not open yet” on
             its register page at{" "}
             <span className="font-semibold text-ink">
@@ -234,7 +234,7 @@ export default function Setup() {
           <ul className="space-y-2 text-sm">
             {terms.map((t) => (
               <li key={t.id} className="flex items-center justify-between rounded-lg bg-mist px-3 py-2">
-                <span>{t.session} — {t.name} {t.is_current && <span className="ml-1 rounded bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">Current</span>}</span>
+                <span>{t.session} - {t.name} {t.is_current && <span className="ml-1 rounded bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">Current</span>}</span>
                 {!t.is_current && (
                   <button className="font-semibold text-royal" onClick={() => setCurrent(t.id)}>Set current</button>
                 )}
