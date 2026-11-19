@@ -17,7 +17,7 @@ import {
 
 /** Collated term report card for one pupil: all subjects' Test /20,
  *  Assignment /10 and Exam /70 scores for the current term, overall
- *  average, class position and attendance — headed by the school's own
+ *  average, class position and attendance - headed by the school's own
  *  logo, name and motto. This is the same card the Scores & Results
  *  page will link to once that port lands. */
 export default function StudentReportCard() {
@@ -42,7 +42,7 @@ export default function StudentReportCard() {
   const [position, setPosition] = useState<number | null>(null);
   const [positionOf, setPositionOf] = useState<number | null>(null);
   const [attendancePct, setAttendancePct] = useState<number | null>(null);
-  const [attendanceText, setAttendanceText] = useState("—");
+  const [attendanceText, setAttendanceText] = useState("-");
   const [state, setState] = useState("loading");
 
   useEffect(() => {
@@ -70,7 +70,7 @@ export default function StudentReportCard() {
         .select("*")
         .eq("id", pupil.class_id ?? "")
         .maybeSingle();
-      setClassName((cls as ClassRow | null)?.name ?? "—");
+      setClassName((cls as ClassRow | null)?.name ?? "-");
 
       const { data: terms } = await supabase
         .from("terms")
@@ -99,7 +99,7 @@ export default function StudentReportCard() {
             const total =
               (r.test_score ?? 0) + (r.assignment_score ?? 0) + (r.exam_score ?? 0);
             return {
-              subject: r.subjects?.name ?? "—",
+              subject: r.subjects?.name ?? "-",
               test: r.test_score,
               assignment: r.assignment_score,
               exam: r.exam_score,
@@ -178,7 +178,7 @@ export default function StudentReportCard() {
     );
   }
 
-  const termLabel = term ? `${term.session} — ${term.name}` : "Current term";
+  const termLabel = term ? `${term.session} - ${term.name}` : "Current term";
 
   return (
     <div>
@@ -205,7 +205,7 @@ export default function StudentReportCard() {
       </button>
       <p className="mt-2 text-xs text-slate-500">
         Use your browser&apos;s print dialog to save it as a PDF or print a
-        hard copy — one pupil per page.
+        hard copy - one pupil per page.
       </p>
     </div>
   );
