@@ -52,8 +52,10 @@ export default function Login({ schoolSlug }: { schoolSlug?: string }) {
   }, [schoolSlug]);
 
   // Already signed in: finish any pending invite, then send them onward.
-  // School users land in their school's own path (/greenfield); the
-  // platform owner lands on the Mother Board.
+  // Each role lands in its own workspace: the platform owner on the
+  // Mother Board, the school admin on the school overview, and
+  // teachers / students / parents in their own workspaces
+  // (/<slug>/teacher, /<slug>/student, /<slug>/parent).
   useEffect(() => {
     if (loading || !user) return;
     (async () => {
@@ -78,18 +80,21 @@ export default function Login({ schoolSlug }: { schoolSlug?: string }) {
         (prof as { school_id: string | null } | null)?.school_id ??
         profile?.school_id ??
         null;
-      let dest = "/";
-      if (role === "platform_owner") dest = "/mother-board";
-      else if (schoolSlug) dest = `/${schoolSlug}`;
-      else if (schoolId) {
+      let slug = schoolSlug ?? null;
+      if (!slug && schoolId) {
         const { data } = await supabase
           .from("schools")
           .select("slug")
           .eq("id", schoolId)
           .maybeSingle();
-        const slug = (data as { slug: string } | null)?.slug;
-        if (slug) dest = `/${slug}`;
+        slug = (data as { slug: string } | null)?.slug ?? null;
       }
+      const base = slug ? `/${slug}` : "";
+      let dest = `${base}/` || "/";
+      if (role === "platform_owner") dest = "/mother-board";
+      else if (role === "teacher") dest = `${base}/teacher`;
+      else if (role === "student") dest = `${base}/student`;
+      else if (role === "parent") dest = `${base}/parent`;
       router.replace(dest);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
