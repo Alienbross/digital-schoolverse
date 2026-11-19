@@ -71,7 +71,7 @@ export default function AcceptInvite({ schoolSlug }: { schoolSlug?: string }) {
       const res = await completeInvite(token);
       if (res.ok) {
         setDone(true);
-        setMsg("Invite accepted — welcome to Digital SchoolVerse.");
+        setMsg("Invite accepted - welcome to Digital SchoolVerse.");
       } else {
         setMsg(res.error ?? "Could not finish your invite.");
       }
@@ -113,7 +113,7 @@ export default function AcceptInvite({ schoolSlug }: { schoolSlug?: string }) {
         /* ignore */
       }
       setMsg(
-        "Account created — check your email and confirm it, then sign in. " +
+        "Account created - check your email and confirm it, then sign in. " +
           "Your invite will finish automatically when you sign in.",
       );
       setBusy(false);
@@ -126,7 +126,7 @@ export default function AcceptInvite({ schoolSlug }: { schoolSlug?: string }) {
       return;
     }
     setDone(true);
-    setMsg("Invite accepted — welcome to Digital SchoolVerse.");
+    setMsg("Invite accepted - welcome to Digital SchoolVerse.");
     setBusy(false);
   };
 
@@ -162,7 +162,7 @@ export default function AcceptInvite({ schoolSlug }: { schoolSlug?: string }) {
     <div>
       <PageHeader
         title={`Join ${invite.school_name}`}
-        sub={`You were invited as ${invite.role.replace("_", " ")} — ${invite.email}. Set a password to create your login.`}
+        sub={`You were invited as ${invite.role.replace("_", " ")} - ${invite.email}. Set a password to create your login.`}
       />
       {branding && (
         <div className="mb-4 flex items-center gap-3">
