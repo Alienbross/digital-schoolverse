@@ -22,7 +22,7 @@ type Msg = {
 };
 
 export type MessageIdentity = {
-  /** "Teacher" | "Student" | "Parent" | "School" — written to messages.sender_role. */
+  /** "Teacher" | "Student" | "Parent" | "School" - written to messages.sender_role. */
   senderRole: string;
   teacherId: string | null;
   studentId: string | null;
@@ -149,7 +149,7 @@ export default function MessagesPanel({
             <div>
               <label className={labelCls}>About pupil</label>
               <select className={inputCls} value={aboutStudent} onChange={(e) => setAboutStudent(e.target.value)}>
-                <option value="">— General —</option>
+                <option value="">- General -</option>
                 {studentOptions.map((id) => (
                   <option key={id} value={id}>{studentLabels[id] ?? id}</option>
                 ))}
