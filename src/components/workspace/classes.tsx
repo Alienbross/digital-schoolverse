@@ -83,16 +83,16 @@ export default function Classes() {
     branches.find((b) => b.id === id)?.name ?? "Main branch";
   const teacherNameOf = (id: string | null) => {
     const t = teachers.find((x) => x.id === id);
-    return t ? `${t.first_name} ${t.last_name}` : "—";
+    return t ? `${t.first_name} ${t.last_name}` : "-";
   };
 
   return (
     <div>
       <ConfigBanner />
-      <PageHeader title="Classes & Arms" sub="Stages, capacity and class teachers. Classes belong to a branch — everything saved before branches stays on Main." />
+      <PageHeader title="Classes & Arms" sub="Stages, capacity and class teachers. Classes belong to a branch - everything saved before branches stays on Main." />
       {readOnly && (
         <div className="mb-4 rounded-xl border border-skybrand/40 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-          Signed in as {profile?.role.replace("_", " ")} — read-only view.
+          Signed in as {profile?.role.replace("_", " ")} - read-only view.
         </div>
       )}
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
@@ -116,7 +116,7 @@ export default function Classes() {
               </select></div>
             <div><label className={labelCls}>Class teacher</label>
               <select className={inputCls} value={teacherId} onChange={(e) => setTeacherId(e.target.value)}>
-                <option value="">— None yet —</option>
+                <option value="">- None yet -</option>
                 {teachers.map((t) => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
               </select></div>
             <button className={btnCls} disabled={!isSupabaseConfigured || readOnly}>Add class</button>
@@ -131,7 +131,7 @@ export default function Classes() {
             </form>
             <ul className="space-y-1 text-sm">
               {branches.map((b) => <li key={b.id}>{b.name} {b.is_main && <span className="text-xs text-slate-400">(Main)</span>}</li>)}
-              {branches.length === 0 && <li className="text-slate-400">No branches yet — classes use Main branch.</li>}
+              {branches.length === 0 && <li className="text-slate-400">No branches yet - classes use Main branch.</li>}
             </ul>
           </Card>
           <Card>
