@@ -57,7 +57,7 @@ export function attendancePct(
 }
 
 /** Next complaint reference, e.g. CMP-2026-0007. Counts existing rows
- *  for the school — good enough for a school portal; the reference is
+ *  for the school - good enough for a school portal; the reference is
  *  unique per school in the database. */
 export async function nextComplaintRef(schoolId: string): Promise<string> {
   const { count } = await supabase
