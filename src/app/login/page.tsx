@@ -52,7 +52,7 @@ export default function Login({ schoolSlug }: { schoolSlug?: string }) {
         const schoolId = (inv as { school_id: string } | null)?.school_id;
         if (schoolId) setBranding(await fetchSchoolBranding(schoolId));
       } catch {
-        /* ignore — platform branding is the fallback */
+        /* ignore - platform branding is the fallback */
       }
     })();
   }, [schoolSlug]);
@@ -89,9 +89,9 @@ export default function Login({ schoolSlug }: { schoolSlug?: string }) {
           }
         }
       } catch {
-        /* ignore — the user can re-register from the school link */
+        /* ignore - the user can re-register from the school link */
       }
-      // Read the profile fresh — a brand-new invite user has no profile
+      // Read the profile fresh - a brand-new invite user has no profile
       // in context yet (completeInvite just created it).
       const { data: prof } = await supabase
         .from("profiles")
@@ -164,7 +164,7 @@ export default function Login({ schoolSlug }: { schoolSlug?: string }) {
     setMsg(
       error
         ? `Could not send reset email: ${error.message}`
-        : "Reset email sent — check your inbox.",
+        : "Reset email sent - check your inbox.",
     );
     if (!error) setResetSent(true);
     setBusy(false);
@@ -173,7 +173,7 @@ export default function Login({ schoolSlug }: { schoolSlug?: string }) {
   return (
     <div>
       <ConfigBanner />
-      <PageHeader title="Sign in" sub="Digital SchoolVerse — school staff, teachers, parents and students sign in here. The platform owner signs in here too." />
+      <PageHeader title="Sign in" sub="Digital SchoolVerse - school staff, teachers, parents and students sign in here. The platform owner signs in here too." />
       {branding && (
         <div className="mb-4 flex items-center gap-3">
           <SchoolLogo name={branding.name} logoUrl={branding.logo_url} size={56} />
@@ -231,7 +231,7 @@ export default function Login({ schoolSlug }: { schoolSlug?: string }) {
           No account yet?{" "}
           {schoolSlug ? (
             <>
-              Register at your school — no invite needed:{" "}
+              Register at your school - no invite needed:{" "}
               <Link href={`/${schoolSlug}/register`} className="font-semibold text-royal">
                 /{schoolSlug}/register →
               </Link>{" "}
@@ -241,7 +241,7 @@ export default function Login({ schoolSlug }: { schoolSlug?: string }) {
           ) : (
             <>
               Teachers, students and parents register from their
-              school&apos;s own link (ask your school admin for it — it looks
+              school&apos;s own link (ask your school admin for it - it looks
               like digital-schoolverse.vercel.app/your-school/register). School
               admins are invited by the platform owner from the Mother Board.
             </>
