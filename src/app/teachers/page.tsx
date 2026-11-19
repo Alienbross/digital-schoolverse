@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { useAuth, useCanManage } from "@/lib/auth";
 import type { School, Teacher } from "@/lib/types";
 import {
   btnCls,
@@ -13,6 +14,9 @@ import {
 } from "@/components/ui";
 
 export default function Teachers() {
+  const { schoolId, profile, loading: authLoading } = useAuth();
+  const canManage = useCanManage();
+  const readOnly = !!profile && !canManage;
   const [school, setSchool] = useState<School | null>(null);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [firstName, setFirstName] = useState("");
@@ -23,7 +27,9 @@ export default function Teachers() {
   const [msg, setMsg] = useState("");
 
   const load = async () => {
-    const { data: s } = await supabase.from("schools").select("*").order("created_at").limit(1).single();
+    const { data: s } = schoolId
+      ? await supabase.from("schools").select("*").eq("id", schoolId).single()
+      : await supabase.from("schools").select("*").order("created_at").limit(1).single();
     if (!s) return;
     setSchool(s);
     const { data: t } = await supabase.from("teachers").select("*").eq("school_id", s.id).order("last_name");
@@ -31,9 +37,9 @@ export default function Teachers() {
   };
 
   useEffect(() => {
-    if (isSupabaseConfigured) load();
+    if (isSupabaseConfigured && !authLoading) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading, schoolId]);
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +61,11 @@ export default function Teachers() {
     <div>
       <ConfigBanner />
       <PageHeader title="Teachers & Staff" sub="Teachers and other staff in one register." />
+      {readOnly && (
+        <div className="mb-4 rounded-xl border border-skybrand/40 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          Signed in as {profile?.role.replace("_", " ")} — read-only view.
+        </div>
+      )}
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -70,7 +81,7 @@ export default function Teachers() {
               </select></div>
             <div><label className={labelCls}>Email</label><input className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} /></div>
             <div><label className={labelCls}>Phone</label><input className={inputCls} value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
-            <button className={btnCls} disabled={!isSupabaseConfigured}>Add</button>
+            <button className={btnCls} disabled={!isSupabaseConfigured || readOnly}>Add</button>
           </form>
         </Card>
         <Card>
