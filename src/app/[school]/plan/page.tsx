@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { SchoolWorkspace } from "@/components/school-route";
 import PlanContent from "@/components/workspace/plan";
 
-/** /<school-slug> workspace page — the same content as the plain
+/** /<school-slug> workspace page - the same content as the plain
  *  route, guarded to that school. See src/components/school-route. */
 export default function Plan() {
   const params = useParams<{ school: string }>();
