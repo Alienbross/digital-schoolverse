@@ -16,6 +16,64 @@
   --foreground: #0f172a;
 }
 
+/* Dark theme (deep navy #0B1220). Applied by toggling the `dark` class on
+ * <html>, saved in localStorage as `dsv-theme`. The overrides below cover
+ * the utility classes the app's pages use, so every page — school
+ * workspace and Mother Board — goes dark without a per-page rewrite. */
+.dark {
+  --background: #0b1220;
+  --foreground: #e2e8f0;
+}
+
+.dark body {
+  background: #0b1220;
+  color: #e2e8f0;
+}
+
+.dark .bg-white {
+  background-color: #101d38 !important;
+}
+
+.dark .bg-mist {
+  background-color: #16263f !important;
+}
+
+.dark .bg-slate-100 {
+  background-color: #16263f !important;
+}
+
+.dark .text-ink {
+  color: #f1f5f9 !important;
+}
+
+.dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-slate-400 {
+  color: #64748b !important;
+}
+
+.dark .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+.dark .border-line {
+  border-color: #1e3a5f !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #101d38 !important;
+  color: #e2e8f0 !important;
+  border-color: #1e3a5f !important;
+}
+
+.dark input::placeholder {
+  color: #64748b;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
