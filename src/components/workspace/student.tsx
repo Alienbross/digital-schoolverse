@@ -64,7 +64,7 @@ export default function StudentWorkspace() {
   const studentId = profile?.student_id ?? pickerStudentId;
   const me = students.find((s) => s.id === studentId);
   // Pending accounts (migration 0006) may complete their profile/setup
-  // only — subjects, homework, results, attendance, CBT, tutor and
+  // only - subjects, homework, results, attendance, CBT, tutor and
   // help stay locked until a class teacher or the admin approves them.
   const isPending = !isPreview && profile?.status === "Pending";
   const [allClasses, setAllClasses] = useState<ClassRow[]>([]);
@@ -158,7 +158,7 @@ export default function StudentWorkspace() {
       const rows = ((sc as { test_score: number | null; assignment_score: number | null; exam_score: number | null; remark: string | null; subjects: { name: string } | null }[] | null) ?? []).map((r) => {
         const total = (r.test_score ?? 0) + (r.assignment_score ?? 0) + (r.exam_score ?? 0);
         return {
-          subject: r.subjects?.name ?? "—",
+          subject: r.subjects?.name ?? "-",
           test: r.test_score,
           assignment: r.assignment_score,
           exam: r.exam_score,
@@ -193,12 +193,12 @@ export default function StudentWorkspace() {
           <Card>
             <p className="text-sm">You are signed in as {profile?.role.replace("_", " ")}. Pick a pupil to preview their workspace:</p>
             <select className={`${inputCls} mt-3 max-w-sm`} value={pickerStudentId} onChange={(e) => setPickerStudentId(e.target.value)}>
-              <option value="">— Choose a pupil —</option>
+              <option value="">- Choose a pupil -</option>
               {students.map((s) => (
                 <option key={s.id} value={s.id}>{s.first_name} {s.last_name} · {s.admission_no}</option>
               ))}
             </select>
-            {students.length === 0 && <p className="mt-2 text-sm text-slate-500">No pupils in this school yet — add them under Students first.</p>}
+            {students.length === 0 && <p className="mt-2 text-sm text-slate-500">No pupils in this school yet - add them under Students first.</p>}
           </Card>
         ) : (
           <Card>
@@ -219,7 +219,7 @@ export default function StudentWorkspace() {
       <div>
         <ConfigBanner />
         <PageHeader
-          title={`Student workspace — ${me.first_name} ${me.last_name}`}
+          title={`Student workspace - ${me.first_name} ${me.last_name}`}
           sub={`${me.admission_no} · Complete your details while you wait for approval.`}
         />
         <div className="max-w-lg">
@@ -234,7 +234,7 @@ export default function StudentWorkspace() {
               <div>
                 <label className={labelCls}>My class</label>
                 <select className={inputCls} value={editClass} onChange={(e) => setEditClass(e.target.value)}>
-                  <option value="">— Choose your class —</option>
+                  <option value="">- Choose your class -</option>
                   {allClasses.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}{c.arm ? ` · Arm ${c.arm}` : ""}</option>
                   ))}
@@ -244,7 +244,7 @@ export default function StudentWorkspace() {
                 <div>
                   <label className={labelCls}>Gender</label>
                   <select className={inputCls} value={editGender} onChange={(e) => setEditGender(e.target.value)}>
-                    <option value="">—</option>
+                    <option value="">-</option>
                     <option>Female</option>
                     <option>Male</option>
                   </select>
@@ -268,8 +268,8 @@ export default function StudentWorkspace() {
     <div>
       <ConfigBanner />
       <PageHeader
-        title={`Student workspace${me ? ` — ${me.first_name} ${me.last_name}` : ""}`}
-        sub={me ? `${cls?.name ?? "No class assigned yet"} · ${me.admission_no}${term ? ` · ${term.session} — ${term.name}` : ""}` : "Your subjects, homework, results and practice."}
+        title={`Student workspace${me ? ` - ${me.first_name} ${me.last_name}` : ""}`}
+        sub={me ? `${cls?.name ?? "No class assigned yet"} · ${me.admission_no}${term ? ` · ${term.session} - ${term.name}` : ""}` : "Your subjects, homework, results and practice."}
       />
       {isPreview && (
         <div className="mb-4 flex items-center gap-2 text-sm">
@@ -295,7 +295,7 @@ export default function StudentWorkspace() {
 
       {tab === "subjects" && (
         <Card>
-          <h2 className="mb-3 font-semibold">My subjects{cls ? ` — ${cls.name}` : ""}</h2>
+          <h2 className="mb-3 font-semibold">My subjects{cls ? ` - ${cls.name}` : ""}</h2>
           {subjects.length === 0 ? (
             <p className="text-sm text-slate-500">No subjects assigned to your class yet.</p>
           ) : (
@@ -327,7 +327,7 @@ export default function StudentWorkspace() {
                 <li key={h.id} className="rounded-lg bg-mist px-3 py-2">
                   <strong>{h.title}</strong>
                   <span className="block text-xs text-slate-500">
-                    {h.subject_id ? subjectNames[h.subject_id] ?? "" : "General"} · Due {h.due_date ?? "—"}
+                    {h.subject_id ? subjectNames[h.subject_id] ?? "" : "General"} · Due {h.due_date ?? "-"}
                   </span>
                   {h.instructions && <p className="mt-1 text-slate-600">{h.instructions}</p>}
                 </li>
@@ -351,11 +351,11 @@ export default function StudentWorkspace() {
           <Card>
             {school && me ? (
               <>
-                <ReportCardHeader school={school} termLabel={term ? `${term.session} — ${term.name}` : "Current term"} />
+                <ReportCardHeader school={school} termLabel={term ? `${term.session} - ${term.name}` : "Current term"} />
                 <ReportCardBody
                   studentName={`${me.first_name} ${me.last_name}`}
                   admissionNo={me.admission_no}
-                  className={cls?.name ?? "—"}
+                  className={cls?.name ?? "-"}
                   rows={scores}
                   average={average}
                   position={null}
@@ -416,7 +416,7 @@ export default function StudentWorkspace() {
           <Card>
             <h2 className="font-semibold">Need help?</h2>
             <p className="mt-1 text-sm text-slate-600">
-              If someone is hurting you, threatening you, or making you feel unsafe — at school or online — tell a teacher or a trusted adult in person right away. You can also use the form below: choose <strong>Bullying</strong> and it goes straight to a senior staff member as <strong>Urgent</strong>.
+              If someone is hurting you, threatening you, or making you feel unsafe - at school or online - tell a teacher or a trusted adult in person right away. You can also use the form below: choose <strong>Bullying</strong> and it goes straight to a senior staff member as <strong>Urgent</strong>.
             </p>
           </Card>
           <ComplaintWizard
@@ -470,7 +470,7 @@ function StudyTutorSection({
     e.preventDefault();
     if (!question.trim()) return;
     const subj = subjects.find((s) => s.id === subjectId)?.name ?? "your subject";
-    const content = `STUDY HELP — demo draft, no live AI. Your teacher can check this with you.\n\nYou asked (${subj}): ${question.trim()}\n\nHow to work it out:\n1. Say what the question is asking in your own words.\n2. Write down what you already know about it.\n3. Try one small step — then check it.\n4. If you get stuck, write down exactly where you got stuck and ask your teacher that part.\n\nQuick check for yourself: can you explain the answer to a friend? If not, try step 1 again.`;
+    const content = `STUDY HELP - demo draft, no live AI. Your teacher can check this with you.\n\nYou asked (${subj}): ${question.trim()}\n\nHow to work it out:\n1. Say what the question is asking in your own words.\n2. Write down what you already know about it.\n3. Try one small step - then check it.\n4. If you get stuck, write down exactly where you got stuck and ask your teacher that part.\n\nQuick check for yourself: can you explain the answer to a friend? If not, try step 1 again.`;
     const { error } = await supabase.from("ai_drafts").insert({
       school_id: schoolId,
       kind: "study_help",
@@ -480,7 +480,7 @@ function StudyTutorSection({
       subject_id: subjectId || null,
       student_id: studentId,
     });
-    setMsg(error ? `Could not save: ${error.message}` : "Saved below. This is a study guide, not the answer — work through the steps.");
+    setMsg(error ? `Could not save: ${error.message}` : "Saved below. This is a study guide, not the answer - work through the steps.");
     setQuestion("");
     load();
   };
@@ -490,7 +490,7 @@ function StudyTutorSection({
       <Card>
         <h2 className="mb-1 font-semibold">AI Study Tutor</h2>
         <p className="mb-3 text-sm text-slate-500">
-          Demo only — no live AI is connected. It gives you steps to work a question out yourself, not the answer, and your teacher can see what you asked.
+          Demo only - no live AI is connected. It gives you steps to work a question out yourself, not the answer, and your teacher can see what you asked.
         </p>
         <form onSubmit={ask} className="space-y-3">
           <div>
@@ -509,7 +509,7 @@ function StudyTutorSection({
       </Card>
       <Card>
         <h2 className="mb-3 font-semibold">My study help</h2>
-        {drafts.length === 0 ? <p className="text-sm text-slate-500">Nothing yet — ask your first question.</p> : (
+        {drafts.length === 0 ? <p className="text-sm text-slate-500">Nothing yet - ask your first question.</p> : (
           <ul className="space-y-2 text-sm">
             {drafts.map((d) => (
               <li key={d.id} className="rounded-lg bg-mist px-3 py-2">
