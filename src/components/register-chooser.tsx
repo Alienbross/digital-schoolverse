@@ -66,7 +66,7 @@ export default function RegisterChooser({ slug }: { slug: string }) {
       <ConfigBanner />
       <PageHeader
         title={`Register at ${school.name}`}
-        sub="No invite needed — pick who you are. Every registration waits for the school to approve it before you get full access."
+        sub="No invite needed - pick who you are. Every registration waits for the school to approve it before you get full access."
       />
       <div className="mb-6 flex items-center gap-3">
         <SchoolLogo name={school.name} logoUrl={school.logo_url} size={56} />
@@ -81,7 +81,7 @@ export default function RegisterChooser({ slug }: { slug: string }) {
           <h2 className="font-semibold">Registration is not open yet</h2>
           <p className="mt-1 text-sm text-slate-500">
             {school.name} has not opened registration. The school opens it in
-            order — teachers first, then students, then parents. Ask the
+            order - teachers first, then students, then parents. Ask the
             school admin when it opens.
           </p>
         </Card>
