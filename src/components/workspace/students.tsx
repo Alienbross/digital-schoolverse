@@ -70,13 +70,13 @@ export default function Students() {
       last_name: lastName.trim(),
       gender: gender || null,
     });
-    setMsg(error ? `Could not add pupil: ${error.message}` : `${firstName.trim()} ${lastName.trim()} added — ${admissionNo}.`);
+    setMsg(error ? `Could not add pupil: ${error.message}` : `${firstName.trim()} ${lastName.trim()} added - ${admissionNo}.`);
     setFirstName(""); setLastName(""); setGender("");
     load();
   };
 
   const classNameOf = (id: string | null) =>
-    classes.find((c) => c.id === id)?.name ?? "—";
+    classes.find((c) => c.id === id)?.name ?? "-";
   const filtered = students.filter((s) =>
     `${s.first_name} ${s.last_name} ${s.admission_no}`.toLowerCase().includes(search.toLowerCase())
   );
@@ -84,10 +84,10 @@ export default function Students() {
   return (
     <div>
       <ConfigBanner />
-      <PageHeader title="Students" sub="Searchable register. Admission numbers are generated automatically — DSV/2026/0001, 0002…" />
+      <PageHeader title="Students" sub="Searchable register. Admission numbers are generated automatically - DSV/2026/0001, 0002…" />
       {readOnly && (
         <div className="mb-4 rounded-xl border border-skybrand/40 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-          Signed in as {profile?.role.replace("_", " ")} — read-only view.
+          Signed in as {profile?.role.replace("_", " ")} - read-only view.
         </div>
       )}
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
@@ -99,11 +99,11 @@ export default function Students() {
             <div><label className={labelCls}>Last name</label><input className={inputCls} value={lastName} onChange={(e) => setLastName(e.target.value)} /></div>
             <div><label className={labelCls}>Gender</label>
               <select className={inputCls} value={gender} onChange={(e) => setGender(e.target.value)}>
-                <option value="">—</option><option>Female</option><option>Male</option>
+                <option value="">-</option><option>Female</option><option>Male</option>
               </select></div>
             <div><label className={labelCls}>Class</label>
               <select className={inputCls} value={classId} onChange={(e) => setClassId(e.target.value)}>
-                <option value="">— No class yet —</option>
+                <option value="">- No class yet -</option>
                 {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select></div>
             <p className="text-xs text-slate-400">Next admission number: {nextAdmissionNo()}</p>
@@ -123,7 +123,7 @@ export default function Students() {
                   </span>
                 </li>
               ))}
-              {filtered.length === 0 && <li className="text-slate-400">No pupils yet — add the first one.</li>}
+              {filtered.length === 0 && <li className="text-slate-400">No pupils yet - add the first one.</li>}
             </ul>
             <p className="mt-3 text-xs text-slate-400">{students.length} pupil(s) on roll.</p>
           </Card>
