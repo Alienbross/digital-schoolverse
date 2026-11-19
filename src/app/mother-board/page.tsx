@@ -51,7 +51,7 @@ export default function MotherBoardOverview() {
   }, []);
 
   const schoolName = (id: string) =>
-    schools.find((s) => s.id === id)?.name ?? "—";
+    schools.find((s) => s.id === id)?.name ?? "-";
   const active = schools.filter((s) => s.status === "Active").length;
   const advanced = schools.filter((s) => s.plan === "Advanced").length;
 
@@ -96,7 +96,7 @@ export default function MotherBoardOverview() {
             ))}
             {schools.length === 0 && (
               <li className="text-slate-400">
-                No schools yet — create the first one on the Schools page.
+                No schools yet - create the first one on the Schools page.
               </li>
             )}
           </ul>
@@ -106,7 +106,7 @@ export default function MotherBoardOverview() {
         </Card>
 
         <Card>
-          <h2 className="mb-3 font-semibold">Urgent complaints — needs attention first</h2>
+          <h2 className="mb-3 font-semibold">Urgent complaints - needs attention first</h2>
           <ul className="space-y-2 text-sm">
             {urgent.map((c) => (
               <li key={c.id} className="rounded-lg bg-mist px-3 py-2">
