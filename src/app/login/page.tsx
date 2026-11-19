@@ -6,10 +6,13 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { PENDING_INVITE_KEY, useAuth } from "@/lib/auth";
 import { completeInvite } from "@/lib/invites";
 import { fetchSchoolBranding, type SchoolBranding } from "@/lib/logo";
+import { fetchSchoolBySlug } from "@/lib/slug";
 import { SchoolLogo } from "@/components/school-logo";
 import { btnCls, Card, ConfigBanner, inputCls, labelCls, PageHeader } from "@/components/ui";
 
-export default function Login() {
+/** Sign in. On a school path (/<slug>/login) the school's logo shows
+ *  and sign-in lands in that school's workspace. */
+export default function Login({ schoolSlug }: { schoolSlug?: string }) {
   const router = useRouter();
   const { user, profile, loading } = useAuth();
   const [email, setEmail] = useState("");
@@ -22,10 +25,18 @@ export default function Login() {
   const [branding, setBranding] = useState<SchoolBranding | null>(null);
 
   useEffect(() => {
-    try {
-      const token = localStorage.getItem(PENDING_INVITE_KEY);
-      if (!token) return;
-      (async () => {
+    (async () => {
+      // A school path brands the sign-in page with that school.
+      if (schoolSlug) {
+        const bySlug = await fetchSchoolBySlug(schoolSlug);
+        if (bySlug) {
+          setBranding({ name: bySlug.name, motto: bySlug.motto, logo_url: bySlug.logo_url });
+          return;
+        }
+      }
+      try {
+        const token = localStorage.getItem(PENDING_INVITE_KEY);
+        if (!token) return;
         const { data: inv } = await supabase
           .from("invites")
           .select("school_id")
@@ -34,13 +45,15 @@ export default function Login() {
           .maybeSingle();
         const schoolId = (inv as { school_id: string } | null)?.school_id;
         if (schoolId) setBranding(await fetchSchoolBranding(schoolId));
-      })();
-    } catch {
-      /* ignore — platform branding is the fallback */
-    }
-  }, []);
+      } catch {
+        /* ignore — platform branding is the fallback */
+      }
+    })();
+  }, [schoolSlug]);
 
   // Already signed in: finish any pending invite, then send them onward.
+  // School users land in their school's own path (/greenfield); the
+  // platform owner lands on the Mother Board.
   useEffect(() => {
     if (loading || !user) return;
     (async () => {
@@ -53,7 +66,31 @@ export default function Login() {
       } catch {
         /* ignore */
       }
-      router.replace(profile?.role === "platform_owner" ? "/mother-board" : "/");
+      // Read the profile fresh — a brand-new invite user has no profile
+      // in context yet (completeInvite just created it).
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("role, school_id")
+        .eq("id", user.id)
+        .maybeSingle();
+      const role = (prof as { role: string } | null)?.role ?? profile?.role;
+      const schoolId =
+        (prof as { school_id: string | null } | null)?.school_id ??
+        profile?.school_id ??
+        null;
+      let dest = "/";
+      if (role === "platform_owner") dest = "/mother-board";
+      else if (schoolSlug) dest = `/${schoolSlug}`;
+      else if (schoolId) {
+        const { data } = await supabase
+          .from("schools")
+          .select("slug")
+          .eq("id", schoolId)
+          .maybeSingle();
+        const slug = (data as { slug: string } | null)?.slug;
+        if (slug) dest = `/${slug}`;
+      }
+      router.replace(dest);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user]);
