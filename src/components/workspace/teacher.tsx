@@ -14,6 +14,8 @@ import {
   type AttendanceStatus,
 } from "@/lib/roles";
 import { btnCls, Card, ConfigBanner, inputCls, labelCls, PageHeader } from "@/components/ui";
+import { LockedNotice } from "@/components/pending-banner";
+import ApprovalsList from "@/components/workspace/approvals";
 import TimetableView from "@/components/workspace/timetable-view";
 import MessagesPanel from "@/components/workspace/messages-panel";
 import ComplaintWizard from "@/components/workspace/complaint-wizard";
@@ -28,7 +30,8 @@ type Tab =
   | "cbt"
   | "messages"
   | "complaints"
-  | "ai";
+  | "ai"
+  | "approvals";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "classes", label: "My Classes" },
@@ -41,6 +44,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "messages", label: "Messages" },
   { id: "complaints", label: "Complaints" },
   { id: "ai", label: "AI Teacher Assistant" },
+  { id: "approvals", label: "Approvals" },
 ];
 
 type ScoreRow = { test: string; assignment: string; exam: string };
@@ -76,6 +80,13 @@ export default function TeacherWorkspace() {
   const isPreview = profile?.role === "platform_owner" || profile?.role === "school_admin";
   const teacherId = profile?.teacher_id ?? pickerTeacherId;
   const me = teachers.find((t) => t.id === teacherId);
+  // Pending accounts (migration 0006) may complete their profile/setup
+  // only. Registers, scores, messages and the rest stay locked until
+  // the school admin approves them.
+  const isPending = !isPreview && profile?.status === "Pending";
+  const [editFirst, setEditFirst] = useState("");
+  const [editLast, setEditLast] = useState("");
+  const [editPhone, setEditPhone] = useState("");
 
   const loadBase = async () => {
     if (!schoolId) return;
@@ -98,6 +109,31 @@ export default function TeacherWorkspace() {
     if (isSupabaseConfigured && !authLoading) loadBase();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, schoolId]);
+
+  /* eslint-disable react-hooks/set-state-in-effect -- prefill from the loaded record, as elsewhere in this codebase */
+  useEffect(() => {
+    if (me) {
+      setEditFirst(me.first_name);
+      setEditLast(me.last_name);
+      setEditPhone(me.phone ?? "");
+    }
+  }, [me?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const saveMyDetails = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!me || !editFirst.trim() || !editLast.trim()) return;
+    const { error } = await supabase
+      .from("teachers")
+      .update({
+        first_name: editFirst.trim(),
+        last_name: editLast.trim(),
+        phone: editPhone.trim() || null,
+      })
+      .eq("id", me.id);
+    setMsg(error ? `Could not save: ${error.message}` : "Your details are saved.");
+    if (!error) loadBase();
+  };
 
   // Classes I teach: subjects assigned to me, plus classes where I am
   // the class teacher.
@@ -174,20 +210,55 @@ export default function TeacherWorkspace() {
         </div>
       )}
       <div className="mb-4 flex flex-wrap gap-2">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`rounded-full px-3 py-1.5 text-sm font-semibold ${tab === t.id ? "bg-royal text-white" : "border border-line bg-white text-slate-600"}`}
-          >
-            {t.label}
-          </button>
-        ))}
+        {TABS.filter((t) => {
+          // Approvals only for teachers who can actually decide
+          // something: a class teacher, or senior staff. Never while
+          // this teacher's own account is still pending.
+          if (t.id === "approvals")
+            return !isPending && (myClassIds.length > 0 || !!me?.can_approve_parents);
+          return true;
+        }).map((t) => {
+          const locked = !!isPending && t.id !== "classes";
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              disabled={locked}
+              title={locked ? "Locked until your account is approved" : undefined}
+              className={`rounded-full px-3 py-1.5 text-sm font-semibold disabled:opacity-50 ${tab === t.id ? "bg-royal text-white" : "border border-line bg-white text-slate-600"}`}
+            >
+              {t.label}
+              {locked ? " 🔒" : ""}
+            </button>
+          );
+        })}
       </div>
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
+      {isPending && tab !== "classes" && (
+        <LockedNotice what="This part of the teacher workspace" />
+      )}
 
       {tab === "classes" && (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-4">
+          {isPending && me && (
+            <Card>
+              <h2 className="mb-1 font-semibold">My profile</h2>
+              <p className="mb-3 text-sm text-slate-500">
+                Complete your details while you wait for approval. The school
+                admin assigns your subjects and classes — those show below
+                once assigned.
+              </p>
+              <form onSubmit={saveMyDetails} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className={labelCls}>First name</label><input className={inputCls} value={editFirst} onChange={(e) => setEditFirst(e.target.value)} /></div>
+                  <div><label className={labelCls}>Last name</label><input className={inputCls} value={editLast} onChange={(e) => setEditLast(e.target.value)} /></div>
+                </div>
+                <div><label className={labelCls}>Phone</label><input className={inputCls} value={editPhone} onChange={(e) => setEditPhone(e.target.value)} /></div>
+                <button className={btnCls}>Save my details</button>
+              </form>
+            </Card>
+          )}
+          <div className="grid gap-4 md:grid-cols-2">
           {myClasses.length === 0 && (
             <Card><p className="text-sm text-slate-500">No classes assigned to you yet. The school admin assigns subjects and class teachers under Classes &amp; Arms and Subjects.</p></Card>
           )}
@@ -208,10 +279,11 @@ export default function TeacherWorkspace() {
               </Card>
             );
           })}
+          </div>
         </div>
       )}
 
-      {tab === "attendance" && (
+      {tab === "attendance" && !isPending && (
         <AttendanceSection
           schoolId={schoolId ?? ""}
           myClasses={myClasses}
@@ -221,7 +293,7 @@ export default function TeacherWorkspace() {
         />
       )}
 
-      {tab === "scores" && (
+      {tab === "scores" && !isPending && (
         <ScoresSection
           schoolId={schoolId ?? ""}
           myClasses={myClasses}
@@ -232,15 +304,15 @@ export default function TeacherWorkspace() {
         />
       )}
 
-      {tab === "lessons" && (
+      {tab === "lessons" && !isPending && (
         <LessonNotesSection schoolId={schoolId ?? ""} myClasses={myClasses} subjectsOf={subjectsOf} />
       )}
 
-      {tab === "homework" && (
+      {tab === "homework" && !isPending && (
         <HomeworkSection schoolId={schoolId ?? ""} teacherId={teacherId ?? ""} myClasses={myClasses} subjectsOf={subjectsOf} term={term} />
       )}
 
-      {tab === "timetable" && (
+      {tab === "timetable" && !isPending && (
         <TimetableView
           schoolId={schoolId ?? ""}
           classIds={myClassIds}
@@ -249,11 +321,11 @@ export default function TeacherWorkspace() {
         />
       )}
 
-      {tab === "cbt" && (
+      {tab === "cbt" && !isPending && (
         <CbtBuilderSection schoolId={schoolId ?? ""} myClasses={myClasses} subjectsOf={subjectsOf} subjectName={subjectName} />
       )}
 
-      {tab === "messages" && (
+      {tab === "messages" && !isPending && (
         <MessagesPanel
           schoolId={schoolId ?? ""}
           identity={{ senderRole: "Teacher", teacherId: teacherId ?? null, studentId: null, parentId: null }}
@@ -262,7 +334,7 @@ export default function TeacherWorkspace() {
         />
       )}
 
-      {tab === "complaints" && (
+      {tab === "complaints" && !isPending && (
         <div className="space-y-4">
           <ComplaintWizard
             schoolId={schoolId ?? ""}
@@ -275,7 +347,7 @@ export default function TeacherWorkspace() {
         </div>
       )}
 
-      {tab === "ai" && (
+      {tab === "ai" && !isPending && (
         <AiAssistantSection
           schoolId={schoolId ?? ""}
           myClasses={myClasses}
@@ -284,6 +356,15 @@ export default function TeacherWorkspace() {
           term={term}
           subjectName={subjectName}
           className={className}
+        />
+      )}
+
+      {tab === "approvals" && !isPending && schoolId && (
+        <ApprovalsList
+          schoolId={schoolId}
+          scope="teacher"
+          myClassIds={myClassIds}
+          canApproveParents={!!me?.can_approve_parents}
         />
       )}
     </div>
