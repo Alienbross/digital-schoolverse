@@ -45,7 +45,8 @@ Without env vars the app still builds and runs, but shows a
    fine for the pilot, move to Pro $25/mo before charging schools).
 2. In the Supabase SQL editor, run
    `supabase/migrations/0001_initial_schema.sql`, then
-   `supabase/migrations/0002_auth_and_mother_board.sql`.
+   `supabase/migrations/0002_auth_and_mother_board.sql`, then
+   `supabase/migrations/0003_school_logos.sql` (school logos bucket).
 3. Copy the project URL + anon key (Settings → API) into `.env.local`.
 
 ## Auth + Mother Board (live in this build)
