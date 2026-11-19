@@ -123,7 +123,7 @@ export default function ParentWorkspace() {
       const { data: st } = await supabase.from("students").select("*").in("id", ids).order("first_name");
       const pupils = (st as Student[] | null) ?? [];
       const built: ChildData[] = await Promise.all(pupils.map(async (pupil) => {
-        const className = classes.find((c) => c.id === pupil.class_id)?.name ?? "—";
+        const className = classes.find((c) => c.id === pupil.class_id)?.name ?? "-";
         let scores: ChildData["scores"] = [];
         let average: number | null = null;
         let attPct: number | null = null;
@@ -136,7 +136,7 @@ export default function ParentWorkspace() {
             .eq("term_id", currentTerm.id);
           scores = ((sc as { test_score: number | null; assignment_score: number | null; exam_score: number | null; subjects: { name: string } | null }[] | null) ?? []).map((r) => {
             const total = (r.test_score ?? 0) + (r.assignment_score ?? 0) + (r.exam_score ?? 0);
-            return { subject: r.subjects?.name ?? "—", total, grade: gradeFor(total) };
+            return { subject: r.subjects?.name ?? "-", total, grade: gradeFor(total) };
           });
           if (scores.length > 0) average = scores.reduce((s, r) => s + r.total, 0) / scores.length;
           const { data: a } = await supabase
@@ -182,7 +182,7 @@ export default function ParentWorkspace() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parentId, schoolId, classes.length]);
 
-  // My proposed pupil links, with their approval state — shown while
+  // My proposed pupil links, with their approval state - shown while
   // pending so a wrong child / wrong class can be spotted early.
   const loadLinks = async () => {
     if (!parentId || !schoolId) return;
@@ -237,7 +237,7 @@ export default function ParentWorkspace() {
       setLinkBusy(false);
       if (error) setSetupMsg(`Could not look up that pupil: ${error}`);
       else if (!pupil)
-        setSetupMsg(`No pupil with admission number “${admNo.trim()}” in this school. Check the number — it looks like DSV/2026/0001.`);
+        setSetupMsg(`No pupil with admission number “${admNo.trim()}” in this school. Check the number - it looks like DSV/2026/0001.`);
       else setFoundPupil(pupil);
       return;
     }
@@ -271,7 +271,7 @@ export default function ParentWorkspace() {
       return;
     }
     setSetupMsg(
-      `${foundPupil.first_name} ${foundPupil.last_name} added as a proposed link — the school admin and class teacher will check it before approval.`,
+      `${foundPupil.first_name} ${foundPupil.last_name} added as a proposed link - the school admin and class teacher will check it before approval.`,
     );
     setFoundPupil(null);
     setAdmNo("");
@@ -304,12 +304,12 @@ export default function ParentWorkspace() {
           <Card>
             <p className="text-sm">You are signed in as {profile?.role.replace("_", " ")}. Pick a parent to preview their workspace:</p>
             <select className={`${inputCls} mt-3 max-w-sm`} value={pickerParentId} onChange={(e) => setPickerParentId(e.target.value)}>
-              <option value="">— Choose a parent —</option>
+              <option value="">- Choose a parent -</option>
               {parents.map((p) => (
                 <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>
               ))}
             </select>
-            {parents.length === 0 && <p className="mt-2 text-sm text-slate-500">No parents in this school yet — add them under Parents first.</p>}
+            {parents.length === 0 && <p className="mt-2 text-sm text-slate-500">No parents in this school yet - add them under Parents first.</p>}
           </Card>
         ) : (
           <Card>
@@ -326,8 +326,8 @@ export default function ParentWorkspace() {
     <div>
       <ConfigBanner />
       <PageHeader
-        title={`Parent workspace${me ? ` — ${me.first_name} ${me.last_name}` : ""}`}
-        sub={term ? `${term.session} — ${term.name}` : "Your children, their progress, fees and messages."}
+        title={`Parent workspace${me ? ` - ${me.first_name} ${me.last_name}` : ""}`}
+        sub={term ? `${term.session} - ${term.name}` : "Your children, their progress, fees and messages."}
       />
       {isPreview && (
         <div className="mb-4 flex items-center gap-2 text-sm">
@@ -374,7 +374,7 @@ export default function ParentWorkspace() {
           <Card>
             <h2 className="mb-1 font-semibold">Add a pupil</h2>
             <p className="mb-3 text-sm text-slate-500">
-              Add each child under you — by admission number (best), or by
+              Add each child under you - by admission number (best), or by
               name and class. The school admin and the class teacher check
               every link before approval.
             </p>
@@ -389,7 +389,7 @@ export default function ParentWorkspace() {
                 <input className={inputCls} value={pupilLast} onChange={(e) => setPupilLast(e.target.value)} placeholder="Pupil's last name" />
               </div>
               <select className={inputCls} value={pupilClass} onChange={(e) => setPupilClass(e.target.value)}>
-                <option value="">— Class (optional) —</option>
+                <option value="">- Class (optional) -</option>
                 {classes.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -421,7 +421,7 @@ export default function ParentWorkspace() {
           <Card>
             <h2 className="mb-3 font-semibold">My pupils</h2>
             {myLinks.length === 0 ? (
-              <p className="text-sm text-slate-500">No pupils linked yet — add one above.</p>
+              <p className="text-sm text-slate-500">No pupils linked yet - add one above.</p>
             ) : (
               <ul className="space-y-2 text-sm">
                 {myLinks.map((l) => (
@@ -481,7 +481,7 @@ export default function ParentWorkspace() {
                   {c.scores.map((s) => (
                     <li key={s.subject} className="flex justify-between rounded-lg bg-mist px-3 py-1.5">
                       <span>{s.subject}</span>
-                      <strong>{s.total}/100 ({s.grade}) — {plainGrade(s.total)}</strong>
+                      <strong>{s.total}/100 ({s.grade}) - {plainGrade(s.total)}</strong>
                     </li>
                   ))}
                 </ul>
@@ -494,12 +494,12 @@ export default function ParentWorkspace() {
                   {c.homework.map((h) => (
                     <li key={h.id} className="rounded-lg bg-mist px-3 py-1.5">
                       <strong>{h.title}</strong>
-                      <span className="text-slate-500"> · {h.subject_id ? subjects[h.subject_id] ?? "" : "General"} · Due {h.due_date ?? "—"}</span>
+                      <span className="text-slate-500"> · {h.subject_id ? subjects[h.subject_id] ?? "" : "General"} · Due {h.due_date ?? "-"}</span>
                     </li>
                   ))}
                 </ul>
               )}
-              <h3 className="mb-2 mt-4 text-sm font-semibold">Timetable — {c.className}</h3>
+              <h3 className="mb-2 mt-4 text-sm font-semibold">Timetable - {c.className}</h3>
               <TimetableView
                 schoolId={schoolId ?? ""}
                 classIds={c.student.class_id ? [c.student.class_id] : []}
@@ -641,7 +641,7 @@ function FeesSection({
       setMsg(`Test checkout failed: ${error.message}`);
       return;
     }
-    setMsg(`Test payment recorded — ${ref}, ₦${value.toLocaleString()} by ${channel}. No real money moved.`);
+    setMsg(`Test payment recorded - ${ref}, ₦${value.toLocaleString()} by ${channel}. No real money moved.`);
     setAmount("");
     loadReceipts(child.student.id);
   };
@@ -682,9 +682,9 @@ function FeesSection({
         )}
       </Card>
       <Card>
-        <h2 className="mb-1 font-semibold">Pay online — test checkout</h2>
+        <h2 className="mb-1 font-semibold">Pay online - test checkout</h2>
         <p className="mb-3 text-sm text-slate-500">
-          <strong>Test checkout — no real money moves.</strong> This records a test payment in the school&apos;s records. Real card payments need live Paystack keys, which are not connected yet.
+          <strong>Test checkout - no real money moves.</strong> This records a test payment in the school&apos;s records. Real card payments need live Paystack keys, which are not connected yet.
         </p>
         <form onSubmit={pay} className="space-y-3">
           <div>
@@ -701,7 +701,7 @@ function FeesSection({
         </form>
         {msg && <p className="mt-3 text-sm font-medium text-royal">{msg}</p>}
         <p className="mt-3 text-xs text-slate-400">
-          Paying for {child.student.first_name} {child.student.last_name} · {term ? `${term.session} — ${term.name}` : "current term"}. A receipt reference (PAY-…) is generated for every test payment.
+          Paying for {child.student.first_name} {child.student.last_name} · {term ? `${term.session} - ${term.name}` : "current term"}. A receipt reference (PAY-…) is generated for every test payment.
         </p>
       </Card>
     </div>
@@ -742,7 +742,7 @@ function ParentHelperSection({
     if (!child) return;
     const best = [...child.scores].sort((a, b) => b.total - a.total)[0];
     const worst = [...child.scores].sort((a, b) => a.total - b.total)[0];
-    const content = `PLAIN-LANGUAGE PROGRESS — demo draft, no live AI. Built from ${child.student.first_name}'s real scores and attendance this term.\n\n${child.student.first_name} ${child.student.last_name} (${child.className}${term ? `, ${term.session} — ${term.name}` : ""})\n\nOverall: ${child.average !== null ? `averaging ${child.average.toFixed(1)} out of 100 across ${child.scores.length} subject(s).` : "no scores recorded yet this term."}\nAttendance: ${child.attPct !== null ? `${child.attPct}% (${child.attText}).` : "no register days yet."}\n${best ? `Strongest subject: ${best.subject} — ${best.total}/100, ${plainGrade(best.total)}.` : ""}\n${worst && worst !== best ? `Needs the most help: ${worst.subject} — ${worst.total}/100, ${plainGrade(worst.total)}.` : ""}\n\nWhat this means: ${child.average !== null && child.average >= 60 ? "things are going well — keep the routine steady." : child.average !== null ? "there is room to improve — a short daily practice in the weakest subject will help most." : "ask the class teacher what to practise first."}\n\nIf anything here looks wrong, ask the class teacher — the scores on the report card are the final word.`;
+    const content = `PLAIN-LANGUAGE PROGRESS - demo draft, no live AI. Built from ${child.student.first_name}'s real scores and attendance this term.\n\n${child.student.first_name} ${child.student.last_name} (${child.className}${term ? `, ${term.session} - ${term.name}` : ""})\n\nOverall: ${child.average !== null ? `averaging ${child.average.toFixed(1)} out of 100 across ${child.scores.length} subject(s).` : "no scores recorded yet this term."}\nAttendance: ${child.attPct !== null ? `${child.attPct}% (${child.attText}).` : "no register days yet."}\n${best ? `Strongest subject: ${best.subject} - ${best.total}/100, ${plainGrade(best.total)}.` : ""}\n${worst && worst !== best ? `Needs the most help: ${worst.subject} - ${worst.total}/100, ${plainGrade(worst.total)}.` : ""}\n\nWhat this means: ${child.average !== null && child.average >= 60 ? "things are going well - keep the routine steady." : child.average !== null ? "there is room to improve - a short daily practice in the weakest subject will help most." : "ask the class teacher what to practise first."}\n\nIf anything here looks wrong, ask the class teacher - the scores on the report card are the final word.`;
     const { error } = await supabase.from("ai_drafts").insert({
       school_id: schoolId,
       kind: "parent_summary",
@@ -761,7 +761,7 @@ function ParentHelperSection({
       <Card>
         <h2 className="mb-1 font-semibold">AI Parent Helper</h2>
         <p className="mb-3 text-sm text-slate-500">
-          Plain-language progress, built from your child&apos;s real scores and attendance. Demo only — no live AI is connected.
+          Plain-language progress, built from your child&apos;s real scores and attendance. Demo only - no live AI is connected.
         </p>
         <div>
           <label className={labelCls}>Child</label>
@@ -776,7 +776,7 @@ function ParentHelperSection({
       </Card>
       <Card>
         <h2 className="mb-3 font-semibold">Progress summaries</h2>
-        {drafts.length === 0 ? <p className="text-sm text-slate-500">Nothing yet — generate one for a child.</p> : (
+        {drafts.length === 0 ? <p className="text-sm text-slate-500">Nothing yet - generate one for a child.</p> : (
           <ul className="space-y-2 text-sm">
             {drafts.map((d) => (
               <li key={d.id} className="rounded-lg bg-mist px-3 py-2">
