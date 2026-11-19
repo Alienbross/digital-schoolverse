@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 
 /** Per-school path URLs: each school gets a short name (slug) and its
  *  own path address, e.g. digital-schoolverse.vercel.app/greenfield.
- *  No domain to buy — the Mother Board sets the slug when the school
+ *  No domain to buy - the Mother Board sets the slug when the school
  *  is created. The slug only picks which school's portal the URL
  *  points at; school scoping and RLS (migration 0002) still decide
  *  what a signed-in user may actually see.
@@ -32,12 +32,12 @@ export const RESERVED_SLUGS = new Set([
   "dashboard",
   "school",
   "schools",
-  // Workspace routes — a school path must never swallow them:
+  // Workspace routes - a school path must never swallow them:
   // /teacher, /student and /parent are real pages, not school slugs.
   "teacher",
   "student",
   "parent",
-  // Registration routes — /<slug>/register and /<slug>/registration
+  // Registration routes - /<slug>/register and /<slug>/registration
   // are real pages, not school slugs.
   "register",
   "registration",
@@ -61,7 +61,7 @@ export function slugProblem(slug: string): string | null {
   if (!SLUG_RE.test(slug))
     return "Use lowercase letters, numbers and hyphens only (e.g. greenfield-academy).";
   if (RESERVED_SLUGS.has(slug))
-    return `"${slug}" is reserved — pick another short name.`;
+    return `"${slug}" is reserved - pick another short name.`;
   return null;
 }
 
@@ -97,7 +97,7 @@ export async function fetchSchoolBySlug(
   return row ? (row as SchoolBySlug) : null;
 }
 
-/** First path segment, when it could be a school slug — "" otherwise.
+/** First path segment, when it could be a school slug - "" otherwise.
  *  Used to keep links inside the school's own path (e.g. /greenfield
  *  -> links start with /greenfield). Plain routes return "". */
 export function firstSegment(pathname: string): string {
