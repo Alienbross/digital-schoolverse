@@ -25,11 +25,11 @@ const ROLE_LABEL: Record<RegisterRole, string> = {
 
 const ROLE_BLURB: Record<RegisterRole, string> = {
   teacher:
-    "Teachers register first. Your account waits for the school admin to approve it — then you can take registers, enter scores and use the teacher workspace.",
+    "Teachers register first. Your account waits for the school admin to approve it - then you can take registers, enter scores and use the teacher workspace.",
   student:
     "Students register after teachers. Pick your class, and your account waits for your class teacher or the school admin to approve it.",
   parent:
-    "Parents register last, once pupils are in. Add your child or children below — by admission number, or by name and class — and your account waits for the school admin (or senior staff) to approve it.",
+    "Parents register last, once pupils are in. Add your child or children below - by admission number, or by name and class - and your account waits for the school admin (or senior staff) to approve it.",
 };
 
 /** Public self-registration for one role at one school:
@@ -95,7 +95,7 @@ export default function RegisterForm({
     }
     if (!pupil) {
       setMsg(
-        `No pupil with admission number “${admissionNo.trim()}” in ${status.school.name}. Check the number — it looks like DSV/2026/0001.`,
+        `No pupil with admission number “${admissionNo.trim()}” in ${status.school.name}. Check the number - it looks like DSV/2026/0001.`,
       );
       return;
     }
@@ -153,7 +153,7 @@ export default function RegisterForm({
     setAdmissionNo("");
     setPupilFirst("");
     setPupilLast("");
-    setMsg(`${pupil.first_name} ${pupil.last_name} added — the school will check this link before approval.`);
+    setMsg(`${pupil.first_name} ${pupil.last_name} added - the school will check this link before approval.`);
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -172,7 +172,7 @@ export default function RegisterForm({
       return;
     }
     if (role === "parent" && pupils.length === 0) {
-      setMsg("Add at least one pupil below — by admission number, or by name and class.");
+      setMsg("Add at least one pupil below - by admission number, or by name and class.");
       return;
     }
     if (!user) {
@@ -249,7 +249,7 @@ export default function RegisterForm({
         /* ignore */
       }
       setMsg(
-        "Account created — check your email and confirm it, then sign in. " +
+        "Account created - check your email and confirm it, then sign in. " +
           "Your registration will finish automatically when you sign in.",
       );
       setBusy(false);
@@ -273,7 +273,7 @@ export default function RegisterForm({
     return (
       <div>
         <ConfigBanner />
-        <PageHeader title="Registration" sub="Connect Supabase first — see the banner above." />
+        <PageHeader title="Registration" sub="Connect Supabase first - see the banner above." />
       </div>
     );
   }
@@ -307,11 +307,11 @@ export default function RegisterForm({
             Your account is created and <strong>waiting for approval</strong>.
             {role === "teacher" && " The school admin will approve it."}
             {role === "student" && " Your class teacher or the school admin will approve it."}
-            {role === "parent" && " The school admin or senior staff will approve it — and check each pupil link you added."}
+            {role === "parent" && " The school admin or senior staff will approve it - and check each pupil link you added."}
           </p>
           {admissionNoOut && (
             <p className="mt-3 rounded-lg bg-mist px-3 py-2 text-sm">
-              <strong>Your admission number is {admissionNoOut}.</strong> Keep it safe — your parent will need it to link you.
+              <strong>Your admission number is {admissionNoOut}.</strong> Keep it safe - your parent will need it to link you.
             </p>
           )}
           <p className="mt-3 text-sm text-slate-600">
@@ -330,7 +330,7 @@ export default function RegisterForm({
     <div>
       <ConfigBanner />
       <PageHeader
-        title={`Register as ${ROLE_LABEL[role]} — ${school.name}`}
+        title={`Register as ${ROLE_LABEL[role]} - ${school.name}`}
         sub={ROLE_BLURB[role]}
       />
       <div className="mb-4 flex items-center gap-3">
@@ -346,7 +346,7 @@ export default function RegisterForm({
           <h2 className="font-semibold">Registration is not open yet</h2>
           <p className="mt-1 text-sm text-slate-500">
             {ROLE_LABEL[role]} registration at {school.name} is still closed.
-            The school opens registration in order — teachers first, then
+            The school opens registration in order - teachers first, then
             students, then parents.{" "}
             {status.phases.teacher && "Teacher registration is open now. "}
             {status.phases.student && "Student registration is open now. "}
@@ -386,7 +386,7 @@ export default function RegisterForm({
                   placeholder="you@example.com"
                   autoComplete="email"
                 />
-                {user && <p className="mt-1 text-xs text-slate-400">Signed in as {user.email} — this registration uses that email.</p>}
+                {user && <p className="mt-1 text-xs text-slate-400">Signed in as {user.email} - this registration uses that email.</p>}
               </div>
               <div>
                 <label className={labelCls}>Phone (optional)</label>
@@ -397,7 +397,7 @@ export default function RegisterForm({
                 <div>
                   <label className={labelCls}>My class</label>
                   <select className={inputCls} value={classId} onChange={(e) => setClassId(e.target.value)}>
-                    <option value="">— Choose your class —</option>
+                    <option value="">- Choose your class -</option>
                     {status.classes.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
@@ -406,7 +406,7 @@ export default function RegisterForm({
                     ))}
                   </select>
                   {status.classes.length === 0 && (
-                    <p className="mt-1 text-xs text-slate-400">No classes yet — the school admin creates classes before student registration opens.</p>
+                    <p className="mt-1 text-xs text-slate-400">No classes yet - the school admin creates classes before student registration opens.</p>
                   )}
                 </div>
               )}
@@ -471,7 +471,7 @@ export default function RegisterForm({
                       </div>
                       <div className="flex gap-2">
                         <select className={inputCls} value={pupilClass} onChange={(e) => setPupilClass(e.target.value)}>
-                          <option value="">— Class (optional) —</option>
+                          <option value="">- Class (optional) -</option>
                           {status.classes.map((c) => (
                             <option key={c.id} value={c.id}>{c.name}</option>
                           ))}
