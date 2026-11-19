@@ -31,7 +31,7 @@ export function SchoolLogo({
     <span
       className="flex shrink-0 items-center justify-center rounded-full bg-royal font-bold text-white"
       style={{ width: size, height: size, fontSize: Math.max(11, size * 0.36) }}
-      aria-label={`${name} — no logo set`}
+      aria-label={`${name} - no logo set`}
     >
       {schoolInitials(name)}
     </span>
@@ -66,7 +66,7 @@ export function LogoUploadField({
     const res = await uploadSchoolLogo(schoolId, file);
     if (res.url) {
       setPreview(res.url);
-      setMsg("Logo saved — it now shows on the portal and report cards.");
+      setMsg("Logo saved - it now shows on the portal and report cards.");
       onChanged(res.url);
     } else {
       setMsg(res.error ?? "Could not upload logo.");
