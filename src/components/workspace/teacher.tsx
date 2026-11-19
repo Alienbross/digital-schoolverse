@@ -59,7 +59,7 @@ type AiDraft = {
 };
 
 const AI_NOTE =
-  "Demo draft — no live AI is connected. This is a template draft built from the details you entered. Review it, edit it, and approve it before using it. AI never changes a grade.";
+  "Demo draft - no live AI is connected. This is a template draft built from the details you entered. Review it, edit it, and approve it before using it. AI never changes a grade.";
 
 export default function TeacherWorkspace() {
   const { schoolId, profile, loading: authLoading } = useAuth();
@@ -75,8 +75,8 @@ export default function TeacherWorkspace() {
   const [term, setTerm] = useState<Term | null>(null);
   const [msg, setMsg] = useState("");
 
-  // The teacher this workspace is for: the signed-in teacher, or — for
-  // the platform owner / school admin previewing — a teacher they pick.
+  // The teacher this workspace is for: the signed-in teacher, or - for
+  // the platform owner / school admin previewing - a teacher they pick.
   const isPreview = profile?.role === "platform_owner" || profile?.role === "school_admin";
   const teacherId = profile?.teacher_id ?? pickerTeacherId;
   const me = teachers.find((t) => t.id === teacherId);
@@ -157,8 +157,8 @@ export default function TeacherWorkspace() {
       .map((cs) => subjects.find((s) => s.id === cs.subject_id))
       .filter((s): s is Subject => !!s);
   const pupilsOf = (classId: string) => students.filter((s) => s.class_id === classId);
-  const subjectName = (id: string | null) => subjects.find((s) => s.id === id)?.name ?? "—";
-  const className = (id: string) => classes.find((c) => c.id === id)?.name ?? "—";
+  const subjectName = (id: string | null) => subjects.find((s) => s.id === id)?.name ?? "-";
+  const className = (id: string) => classes.find((c) => c.id === id)?.name ?? "-";
   const pupilName = (s: Student) => `${s.first_name} ${s.last_name}`;
   const teacherNames: Record<string, string> = {};
   for (const t of teachers) teacherNames[t.id] = `${t.first_name} ${t.last_name}`;
@@ -174,12 +174,12 @@ export default function TeacherWorkspace() {
           <Card>
             <p className="text-sm">You are signed in as {profile?.role.replace("_", " ")}. Pick a teacher to preview their workspace:</p>
             <select className={`${inputCls} mt-3 max-w-sm`} value={pickerTeacherId} onChange={(e) => setPickerTeacherId(e.target.value)}>
-              <option value="">— Choose a teacher —</option>
+              <option value="">- Choose a teacher -</option>
               {teachers.map((t) => (
                 <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
               ))}
             </select>
-            {teachers.length === 0 && <p className="mt-2 text-sm text-slate-500">No teachers in this school yet — add them under Teachers &amp; Staff first.</p>}
+            {teachers.length === 0 && <p className="mt-2 text-sm text-slate-500">No teachers in this school yet - add them under Teachers &amp; Staff first.</p>}
           </Card>
         ) : (
           <Card>
@@ -196,7 +196,7 @@ export default function TeacherWorkspace() {
     <div>
       <ConfigBanner />
       <PageHeader
-        title={`Teacher workspace${me ? ` — ${me.first_name} ${me.last_name}` : ""}`}
+        title={`Teacher workspace${me ? ` - ${me.first_name} ${me.last_name}` : ""}`}
         sub={schoolName || "Your classes, registers, scores and lesson notes."}
       />
       {isPreview && (
@@ -245,7 +245,7 @@ export default function TeacherWorkspace() {
               <h2 className="mb-1 font-semibold">My profile</h2>
               <p className="mb-3 text-sm text-slate-500">
                 Complete your details while you wait for approval. The school
-                admin assigns your subjects and classes — those show below
+                admin assigns your subjects and classes - those show below
                 once assigned.
               </p>
               <form onSubmit={saveMyDetails} className="space-y-3">
@@ -270,7 +270,7 @@ export default function TeacherWorkspace() {
               <Card key={c.id}>
                 <h2 className="font-semibold">{c.name} {isFormTeacher && <span className="ml-1 rounded-full bg-royal px-2 py-0.5 text-xs text-white">Class teacher</span>}</h2>
                 <p className="mt-1 text-sm text-slate-500">{c.stage}{c.arm ? ` · Arm ${c.arm}` : ""} · {pupils.length} pupil{pupils.length === 1 ? "" : "s"}</p>
-                <p className="mt-2 text-sm"><strong>Subjects I teach here:</strong> {subs.filter((s) => mySubjectIds.has(s.id) || isFormTeacher).map((s) => s.name).join(", ") || "—"}</p>
+                <p className="mt-2 text-sm"><strong>Subjects I teach here:</strong> {subs.filter((s) => mySubjectIds.has(s.id) || isFormTeacher).map((s) => s.name).join(", ") || "-"}</p>
                 <p className="mt-1 text-sm text-slate-500">All subjects in this class: {subs.map((s) => s.name).join(", ") || "None assigned yet"}</p>
                 <div className="mt-3 flex gap-2">
                   <button className={btnCls} onClick={() => setTab("attendance")}>Take register →</button>
@@ -420,7 +420,7 @@ function AttendanceSection({
   const save = async () => {
     const unmarked = pupils.filter((p) => !marks[p.id]);
     if (unmarked.length > 0) {
-      setMsg(`${unmarked.length} pupil(s) still unmarked — mark everyone or use “Mark all present” first.`);
+      setMsg(`${unmarked.length} pupil(s) still unmarked - mark everyone or use “Mark all present” first.`);
       return;
     }
     setSaving(true);
@@ -440,7 +440,7 @@ function AttendanceSection({
       setMsg(`Could not save the register: ${error.message}`);
       return;
     }
-    setMsg(`Register saved for ${date} — ${pupils.length} pupils. Saving again updates the same day in place.`);
+    setMsg(`Register saved for ${date} - ${pupils.length} pupils. Saving again updates the same day in place.`);
     onSaved();
   };
 
@@ -468,7 +468,7 @@ function AttendanceSection({
           <button className={btnCls} disabled={saving || !loaded} onClick={save}>Save register</button>
         </div>
       </div>
-      {term && <p className="mb-3 text-xs text-slate-500">Term: {term.session} — {term.name}</p>}
+      {term && <p className="mb-3 text-xs text-slate-500">Term: {term.session} - {term.name}</p>}
       {msg && <p className="mb-3 text-sm font-medium text-royal">{msg}</p>}
       {!loaded ? (
         <p className="text-sm text-slate-500">Loading register…</p>
@@ -594,11 +594,11 @@ function ScoresSection({
 
   const save = async () => {
     if (anyInvalid) {
-      setMsg("Some scores are out of range — Test max 20, Assignment max 10, Exam max 70. Fix the red boxes first.");
+      setMsg("Some scores are out of range - Test max 20, Assignment max 10, Exam max 70. Fix the red boxes first.");
       return;
     }
     if (!term) {
-      setMsg("No current term is set — ask the school admin to mark a term current in School Setup.");
+      setMsg("No current term is set - ask the school admin to mark a term current in School Setup.");
       return;
     }
     setSaving(true);
@@ -621,7 +621,7 @@ function ScoresSection({
         };
       });
     if (payload.length === 0) {
-      setMsg("Nothing to save yet — enter at least one score.");
+      setMsg("Nothing to save yet - enter at least one score.");
       setSaving(false);
       return;
     }
@@ -652,9 +652,9 @@ function ScoresSection({
         </div>
       </div>
       {term ? (
-        <p className="mb-3 text-xs text-slate-500">Term: {term.session} — {term.name} · Test /20 · Assignment /10 · Exam /70 · Grades: A 70+, B 60–69, C 50–59, D 45–49, E 40–44, F below 40.</p>
+        <p className="mb-3 text-xs text-slate-500">Term: {term.session} - {term.name} · Test /20 · Assignment /10 · Exam /70 · Grades: A 70+, B 60–69, C 50–59, D 45–49, E 40–44, F below 40.</p>
       ) : (
-        <p className="mb-3 text-xs text-amber-700">No current term is set — scores need a current term. Ask the school admin to mark one current in School Setup.</p>
+        <p className="mb-3 text-xs text-amber-700">No current term is set - scores need a current term. Ask the school admin to mark one current in School Setup.</p>
       )}
       {anyInvalid && <p className="mb-3 text-sm font-semibold text-red-700">Out-of-range scores are highlighted red and block saving.</p>}
       {msg && <p className="mb-3 text-sm font-medium text-royal">{msg}</p>}
@@ -692,9 +692,9 @@ function ScoresSection({
                     <td className="border border-line px-2 py-2">
                       <input className={`${inputCls} w-20 ${valid(r.exam, 70) ? "" : "border-red-500 bg-red-50"}`} value={r.exam} inputMode="numeric" onChange={(e) => set("exam", e.target.value)} />
                     </td>
-                    <td className="border border-line px-2 py-2 font-semibold">{hasAny ? total : "—"}</td>
-                    <td className="border border-line px-2 py-2 font-semibold">{hasAny ? gradeFor(total) : "—"}</td>
-                    <td className="border border-line px-2 py-2">{positions[p.id] ? `${positions[p.id]}${positions[p.id] === 1 ? "st" : positions[p.id] === 2 ? "nd" : positions[p.id] === 3 ? "rd" : "th"}` : "—"}</td>
+                    <td className="border border-line px-2 py-2 font-semibold">{hasAny ? total : "-"}</td>
+                    <td className="border border-line px-2 py-2 font-semibold">{hasAny ? gradeFor(total) : "-"}</td>
+                    <td className="border border-line px-2 py-2">{positions[p.id] ? `${positions[p.id]}${positions[p.id] === 1 ? "st" : positions[p.id] === 2 ? "nd" : positions[p.id] === 3 ? "rd" : "th"}` : "-"}</td>
                   </tr>
                 );
               })}
@@ -747,7 +747,7 @@ function LessonNotesSection({
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !topic.trim()) return;
-    const content = `Lesson: ${title.trim()}\nTopic: ${topic.trim()}\nObjectives:\n${objectives.trim() || "(add your objectives)"}\n\n1. Introduction — what pupils should already know.\n2. Main teaching — explain the topic in small steps, with examples.\n3. Class activity — pupils practise together.\n4. Assessment — quick questions to check understanding.\n5. Homework — set from the Homework tab.`;
+    const content = `Lesson: ${title.trim()}\nTopic: ${topic.trim()}\nObjectives:\n${objectives.trim() || "(add your objectives)"}\n\n1. Introduction - what pupils should already know.\n2. Main teaching - explain the topic in small steps, with examples.\n3. Class activity - pupils practise together.\n4. Assessment - quick questions to check understanding.\n5. Homework - set from the Homework tab.`;
     const { error } = await supabase.from("ai_drafts").insert({
       school_id: schoolId,
       kind: "lesson_notes",
@@ -858,7 +858,7 @@ function HomeworkSection({
       due_date: due || null,
       status: "Active",
     });
-    setMsg(error ? `Could not set homework: ${error.message}` : "Homework set — pupils in the class will see it in their workspace.");
+    setMsg(error ? `Could not set homework: ${error.message}` : "Homework set - pupils in the class will see it in their workspace.");
     setTitle(""); setInstructions(""); setDue("");
     load();
   };
@@ -882,7 +882,7 @@ function HomeworkSection({
           <div>
             <label className={labelCls}>Subject</label>
             <select className={inputCls} value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
-              <option value="">— General —</option>
+              <option value="">- General -</option>
               {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
@@ -901,7 +901,7 @@ function HomeworkSection({
               <li key={h.id} className="rounded-lg bg-mist px-3 py-2">
                 <strong>{h.title}</strong>
                 <span className="block text-xs text-slate-500">
-                  {myClasses.find((c) => c.id === h.class_id)?.name ?? ""} · {h.subject_id ? subjectsAll[h.subject_id] ?? "" : "General"} · Due {h.due_date ?? "—"} · {h.status}
+                  {myClasses.find((c) => c.id === h.class_id)?.name ?? ""} · {h.subject_id ? subjectsAll[h.subject_id] ?? "" : "General"} · Due {h.due_date ?? "-"} · {h.status}
                 </span>
                 {h.instructions && <p className="mt-1 text-slate-600">{h.instructions}</p>}
                 {h.status === "Active" && (
@@ -975,7 +975,7 @@ function CbtBuilderSection({
       setMsg(`Could not create the test: ${error?.message ?? "unknown error"}`);
       return;
     }
-    setMsg("Practice test published — add questions below.");
+    setMsg("Practice test published - add questions below.");
     setTitle("");
     setOpenTest((data as { id: string }).id);
     load();
@@ -1014,7 +1014,7 @@ function CbtBuilderSection({
           <div>
             <label className={labelCls}>Subject</label>
             <select className={inputCls} value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
-              <option value="">— General —</option>
+              <option value="">- General -</option>
               {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
@@ -1103,7 +1103,7 @@ function ComplaintList({
           ))}
         </ul>
       )}
-      <p className="mt-2 text-xs text-slate-400">Complaints are resolved by the school admin — the status updates here when they do.</p>
+      <p className="mt-2 text-xs text-slate-400">Complaints are resolved by the school admin - the status updates here when they do.</p>
     </Card>
   );
 }
@@ -1160,7 +1160,7 @@ function AiAssistantSection({
       subject_id: subjectId || null,
       student_id: studentId,
     });
-    setMsg(error ? `Could not save the draft: ${error.message}` : "Draft saved — review it below and approve it before using it.");
+    setMsg(error ? `Could not save the draft: ${error.message}` : "Draft saved - review it below and approve it before using it.");
     load();
   };
 
@@ -1174,18 +1174,18 @@ function AiAssistantSection({
     const cls = className(classId);
     if (tool === "lesson_notes") {
       if (!topic.trim()) { setMsg("Enter a topic first."); return; }
-      await saveDraft("lesson_notes", `Lesson outline: ${topic.trim()} (${cls} — ${subj})`,
-        `DRAFT — ${AI_NOTE}\n\nLesson: ${topic.trim()} (${cls}, ${subj})\n\nObjectives:\n- Pupils can explain ${topic.trim()} in their own words.\n- Pupils can answer questions on ${topic.trim()}.\n\nOutline:\n1. Starter — ask what pupils already know about ${topic.trim()}.\n2. Teach — explain in small steps with an example on the board.\n3. Guided practice — work through two examples together.\n4. Independent work — pupils try questions on their own.\n5. Plenary — recap the key point of ${topic.trim()}.`,
+      await saveDraft("lesson_notes", `Lesson outline: ${topic.trim()} (${cls} - ${subj})`,
+        `DRAFT - ${AI_NOTE}\n\nLesson: ${topic.trim()} (${cls}, ${subj})\n\nObjectives:\n- Pupils can explain ${topic.trim()} in their own words.\n- Pupils can answer questions on ${topic.trim()}.\n\nOutline:\n1. Starter - ask what pupils already know about ${topic.trim()}.\n2. Teach - explain in small steps with an example on the board.\n3. Guided practice - work through two examples together.\n4. Independent work - pupils try questions on their own.\n5. Plenary - recap the key point of ${topic.trim()}.`,
         null);
     } else if (tool === "questions") {
       if (!topic.trim()) { setMsg("Enter a topic first."); return; }
       const n = Math.max(1, Math.min(10, Number(count) || 5));
-      const lines = Array.from({ length: n }, (_, i) => `${i + 1}. [Replace with your own question ${i + 1} on ${topic.trim()} — e.g. “What is …?” / “Work out …” / “Explain why …”]`).join("\n");
-      await saveDraft("questions", `Test questions: ${topic.trim()} (${cls} — ${subj})`,
-        `DRAFT — ${AI_NOTE}\n\nTopic: ${topic.trim()} (${cls}, ${subj})\n\n${lines}\n\nMarking: 1 mark each unless you change it. Check every question yourself before giving the test — this draft does not know your syllabus.`,
+      const lines = Array.from({ length: n }, (_, i) => `${i + 1}. [Replace with your own question ${i + 1} on ${topic.trim()} - e.g. “What is …?” / “Work out …” / “Explain why …”]`).join("\n");
+      await saveDraft("questions", `Test questions: ${topic.trim()} (${cls} - ${subj})`,
+        `DRAFT - ${AI_NOTE}\n\nTopic: ${topic.trim()} (${cls}, ${subj})\n\n${lines}\n\nMarking: 1 mark each unless you change it. Check every question yourself before giving the test - this draft does not know your syllabus.`,
         null);
     } else if (tool === "report_comment") {
-      if (!pupilId || !term) { setMsg("Pick a pupil — and the school needs a current term."); return; }
+      if (!pupilId || !term) { setMsg("Pick a pupil - and the school needs a current term."); return; }
       const pupil = pupils.find((p) => p.id === pupilId);
       const { data } = await supabase
         .from("score_records")
@@ -1198,11 +1198,11 @@ function AiAssistantSection({
       const total = (r?.test_score ?? 0) + (r?.assignment_score ?? 0) + (r?.exam_score ?? 0);
       const has = !!r && (r.test_score !== null || r.assignment_score !== null || r.exam_score !== null);
       await saveDraft("report_comment",
-        `Report comment: ${pupil ? `${pupil.first_name} ${pupil.last_name}` : ""} — ${subj}`,
-        `DRAFT — ${AI_NOTE}\n\n${pupil ? `${pupil.first_name} ${pupil.last_name}` : "Pupil"} — ${subj} (${term.session}, ${term.name})\n\n${has ? `Scores on record: Test ${r?.test_score ?? "—"}/20, Assignment ${r?.assignment_score ?? "—"}/10, Exam ${r?.exam_score ?? "—"}/70. Total ${total}/100 (grade ${gradeFor(total)}). ${pupil?.first_name ?? "They"} ${plainGrade(total)} in ${subj} this term.` : `No scores on record for ${subj} this term yet — save scores first, then generate the comment again.`}\n\nTeacher: edit this comment in your own words before it goes on the report card. The scores themselves are never changed by a draft.`,
+        `Report comment: ${pupil ? `${pupil.first_name} ${pupil.last_name}` : ""} - ${subj}`,
+        `DRAFT - ${AI_NOTE}\n\n${pupil ? `${pupil.first_name} ${pupil.last_name}` : "Pupil"} - ${subj} (${term.session}, ${term.name})\n\n${has ? `Scores on record: Test ${r?.test_score ?? "-"}/20, Assignment ${r?.assignment_score ?? "-"}/10, Exam ${r?.exam_score ?? "-"}/70. Total ${total}/100 (grade ${gradeFor(total)}). ${pupil?.first_name ?? "They"} ${plainGrade(total)} in ${subj} this term.` : `No scores on record for ${subj} this term yet - save scores first, then generate the comment again.`}\n\nTeacher: edit this comment in your own words before it goes on the report card. The scores themselves are never changed by a draft.`,
         pupilId);
     } else {
-      // class_summary — from real scores
+      // class_summary - from real scores
       if (!term) { setMsg("The school needs a current term first."); return; }
       const ids = pupils.map((p) => p.id);
       const { data } = await supabase
@@ -1215,8 +1215,8 @@ function AiAssistantSection({
       const totals = list.map((r) => (r.test_score ?? 0) + (r.assignment_score ?? 0) + (r.exam_score ?? 0));
       const avg = totals.length > 0 ? totals.reduce((a, b) => a + b, 0) / totals.length : null;
       const passes = totals.filter((t) => t >= 40).length;
-      await saveDraft("class_summary", `Class summary: ${cls} — ${subj} (${term.name})`,
-        `DRAFT — ${AI_NOTE}\n\n${cls} — ${subj}, ${term.session} ${term.name}\n\n${avg === null ? "No scores saved for this class and subject yet." : `${list.length} pupil(s) scored. Class average ${avg.toFixed(1)}/100 (grade ${gradeFor(avg)}). ${passes} of ${list.length} scored 40 or above.`}\n\nNext steps for the teacher to decide: which pupils need extra help, and what to reteach before the next test.`,
+      await saveDraft("class_summary", `Class summary: ${cls} - ${subj} (${term.name})`,
+        `DRAFT - ${AI_NOTE}\n\n${cls} - ${subj}, ${term.session} ${term.name}\n\n${avg === null ? "No scores saved for this class and subject yet." : `${list.length} pupil(s) scored. Class average ${avg.toFixed(1)}/100 (grade ${gradeFor(avg)}). ${passes} of ${list.length} scored 40 or above.`}\n\nNext steps for the teacher to decide: which pupils need extra help, and what to reteach before the next test.`,
         null);
     }
   };
@@ -1233,7 +1233,7 @@ function AiAssistantSection({
       <Card>
         <h2 className="mb-1 font-semibold">AI Teacher Assistant</h2>
         <p className="mb-3 text-sm text-slate-500">
-          Four drafting tools. Every result is a <strong>draft</strong> — you review and approve it before anyone sees it, and it never changes a grade. {AI_NOTE}
+          Four drafting tools. Every result is a <strong>draft</strong> - you review and approve it before anyone sees it, and it never changes a grade. {AI_NOTE}
         </p>
         <div className="mb-3 flex flex-wrap gap-2">
           {(Object.keys(toolLabel) as (typeof tool)[]).map((k) => (
