@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { PENDING_INVITE_KEY, useAuth } from "@/lib/auth";
 import { completeInvite } from "@/lib/invites";
+import { fetchSchoolBranding, type SchoolBranding } from "@/lib/logo";
+import { SchoolLogo } from "@/components/school-logo";
 import { btnCls, Card, ConfigBanner, inputCls, labelCls, PageHeader } from "@/components/ui";
 
 export default function Login() {
@@ -15,6 +17,28 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [resetSent, setResetSent] = useState(false);
+  // Branding of the school that invited this person (if they arrived
+  // via an invite): the school's logo shows on the sign-in page.
+  const [branding, setBranding] = useState<SchoolBranding | null>(null);
+
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem(PENDING_INVITE_KEY);
+      if (!token) return;
+      (async () => {
+        const { data: inv } = await supabase
+          .from("invites")
+          .select("school_id")
+          .eq("token", token)
+          .eq("status", "Pending")
+          .maybeSingle();
+        const schoolId = (inv as { school_id: string } | null)?.school_id;
+        if (schoolId) setBranding(await fetchSchoolBranding(schoolId));
+      })();
+    } catch {
+      /* ignore — platform branding is the fallback */
+    }
+  }, []);
 
   // Already signed in: finish any pending invite, then send them onward.
   useEffect(() => {
@@ -85,6 +109,15 @@ export default function Login() {
     <div>
       <ConfigBanner />
       <PageHeader title="Sign in" sub="Digital SchoolVerse — school staff, teachers, parents and students sign in here. The platform owner signs in here too." />
+      {branding && (
+        <div className="mb-4 flex items-center gap-3">
+          <SchoolLogo name={branding.name} logoUrl={branding.logo_url} size={56} />
+          <div>
+            <p className="font-bold text-ink">{branding.name}</p>
+            {branding.motto && <p className="text-sm italic text-slate-500">{branding.motto}</p>}
+          </div>
+        </div>
+      )}
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
       <div className="max-w-md">
         <Card>
