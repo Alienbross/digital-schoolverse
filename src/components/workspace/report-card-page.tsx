@@ -23,8 +23,16 @@ import {
 export default function StudentReportCard() {
   const params = useParams<{ id: string }>();
   const studentId = params.id;
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, profile } = useAuth();
   const base = useWorkspaceBase();
+  // Students and parents reached this card from their own workspace;
+  // send them back there, not to the admin Students register.
+  const backHref =
+    profile?.role === "student"
+      ? `${base}/student`
+      : profile?.role === "parent"
+        ? `${base}/parent`
+        : `${base}/students`;
   const [school, setSchool] = useState<School | null>(null);
   const [student, setStudent] = useState<Student | null>(null);
   const [term, setTerm] = useState<Term | null>(null);
@@ -165,7 +173,7 @@ export default function StudentReportCard() {
     return (
       <div>
         <PageHeader title="Report card" sub="Pupil not found." />
-        <Link href={`${base}/students`} className="font-semibold text-royal">← Back to Students</Link>
+        <Link href={backHref} className="font-semibold text-royal">← Back</Link>
       </div>
     );
   }
@@ -176,7 +184,7 @@ export default function StudentReportCard() {
     <div>
       <ConfigBanner />
       <p className="mb-4 text-sm">
-        <Link href={`${base}/students`} className="font-semibold text-royal">← Back to Students</Link>
+        <Link href={backHref} className="font-semibold text-royal">← Back</Link>
       </p>
       <Card>
         <ReportCardHeader school={school} termLabel={termLabel} />
