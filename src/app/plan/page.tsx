@@ -27,7 +27,10 @@ const ADVANCED_TODO = [
   "Admission form fees & document uploads",
   "Live Paystack connection (needs Paystack account + keys)",
   "Live SMS / WhatsApp provider (needs provider choice + account)",
-  "Role logins — school admin / teacher / parent / student (Supabase Auth)",
+];
+
+const NOW_LIVE = [
+  "Mother Board + role logins — Supabase Auth, profiles & invites, auth-based RLS (migration 0002), Light/Dark theme toggle",
 ];
 
 export default function Plan() {
@@ -35,6 +38,12 @@ export default function Plan() {
     <div>
       <PageHeader title="Plan & Roadmap" sub="What is live in this pilot build, what is already built in the Muse portal and still to port, and what still needs the user." />
       <div className="space-y-4">
+        <Card>
+          <h2 className="mb-2 font-semibold text-green-700">✓ Now live in this build</h2>
+          <ul className="list-disc space-y-1 pl-5 text-sm">
+            {NOW_LIVE.map((b) => <li key={b}>{b}</li>)}
+          </ul>
+        </Card>
         <Card>
           <h2 className="mb-2 font-semibold text-green-700">✓ Basics — in this pilot build</h2>
           <ul className="list-disc space-y-1 pl-5 text-sm">
