@@ -5,6 +5,47 @@ export type School = {
   email: string | null;
   phone: string | null;
   address: string | null;
+  plan: string;
+  status: string;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------- auth / Mother Board
+export type Role =
+  | "platform_owner"
+  | "school_admin"
+  | "teacher"
+  | "student"
+  | "parent";
+
+export type Profile = {
+  id: string;
+  email: string;
+  display_name: string | null;
+  role: Role;
+  school_id: string | null;
+  teacher_id: string | null;
+  student_id: string | null;
+  parent_id: string | null;
+  status: string;
+  created_at: string;
+};
+
+export type SchoolInvite = {
+  id: string;
+  token: string;
+  email: string;
+  role: Role;
+  school_id: string;
+  school_name: string;
+  teacher_id: string | null;
+  student_id: string | null;
+  parent_id: string | null;
+  status: string;
+  created_by: string | null;
+  expires_at: string;
+  accepted_at: string | null;
+  accepted_by: string | null;
   created_at: string;
 };
 
