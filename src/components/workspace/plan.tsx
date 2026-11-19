@@ -1,21 +1,21 @@
 import { Card, PageHeader } from "@/components/ui";
 
 const BASICS = [
-  "Foundation + Admin core — school setup, classes, subjects, students, teachers, parents",
-  "Attendance — registers, term % per pupil",
-  "Scores & Results — Test /20, Assignment /10, Exam /70, report cards, file upload",
-  "Fees & Receipts — term bills, payments, balances, statements",
-  "Complaints & Queries — structured intake, CMP tracking, resolve / reopen",
-  "Homework & Timetable — per-class homework, weekly grid, copy week",
-  "Messages & Announcements — audiences, drafts, two-way threads",
-  "Online Admissions — ADM pipeline, enrol to student record",
+  "Foundation + Admin core - school setup, classes, subjects, students, teachers, parents",
+  "Attendance - registers, term % per pupil",
+  "Scores & Results - Test /20, Assignment /10, Exam /70, report cards, file upload",
+  "Fees & Receipts - term bills, payments, balances, statements",
+  "Complaints & Queries - structured intake, CMP tracking, resolve / reopen",
+  "Homework & Timetable - per-class homework, weekly grid, copy week",
+  "Messages & Announcements - audiences, drafts, two-way threads",
+  "Online Admissions - ADM pipeline, enrol to student record",
 ];
 
 const ADVANCED_LIVE_IN_MUSE = [
-  "Advanced analytics — at-risk list, trends, fee collection, complaints",
-  "SMS & WhatsApp alerts — test send (live provider needed for real messages)",
-  "Bus, clinic & discipline — routes, visits, records",
-  "Multi-branch & custom report cards — branches, per-branch templates",
+  "Advanced analytics - at-risk list, trends, fee collection, complaints",
+  "SMS & WhatsApp alerts - test send (live provider needed for real messages)",
+  "Bus, clinic & discipline - routes, visits, records",
+  "Multi-branch & custom report cards - branches, per-branch templates",
 ];
 
 const ADVANCED_TODO = [
@@ -25,11 +25,11 @@ const ADVANCED_TODO = [
 ];
 
 const NOW_LIVE = [
-  "Mother Board + role logins — Supabase Auth, profiles & invites, auth-based RLS (migration 0002), Light/Dark theme toggle",
-  "Teacher workspace (/<slug>/teacher) — My Classes, Attendance register, Scores & Results (Test /20, Assignment /10, Exam /70, Nigerian grades, class positions), Lesson Notes, Homework, Timetable, CBT practice-test builder, Messages, Complaints, AI Teacher Assistant (4 drafting tools, drafts only)",
-  "Student workspace (/<slug>/student) — My Subjects, Homework, Timetable, My Results + report card, Attendance %, CBT Practice (timed, auto-marked, retakes, never counts as a grade), AI Study Tutor (demo drafts), Help & Complaints with urgent bullying route",
-  "Parent workspace (/<slug>/parent) — My Children, per-child attendance / results / homework / timetable, Fees & Receipts with test online checkout, Messages, Complaints 5-step wizard, AI Parent Helper (plain-language progress), Weekly Summaries",
-  "Role routing — after sign-in each role lands in its own workspace; scoped write access for the three roles (migration 0005)",
+  "Mother Board + role logins - Supabase Auth, profiles & invites, auth-based RLS (migration 0002), Light/Dark theme toggle",
+  "Teacher workspace (/<slug>/teacher) - My Classes, Attendance register, Scores & Results (Test /20, Assignment /10, Exam /70, Nigerian grades, class positions), Lesson Notes, Homework, Timetable, CBT practice-test builder, Messages, Complaints, AI Teacher Assistant (4 drafting tools, drafts only)",
+  "Student workspace (/<slug>/student) - My Subjects, Homework, Timetable, My Results + report card, Attendance %, CBT Practice (timed, auto-marked, retakes, never counts as a grade), AI Study Tutor (demo drafts), Help & Complaints with urgent bullying route",
+  "Parent workspace (/<slug>/parent) - My Children, per-child attendance / results / homework / timetable, Fees & Receipts with test online checkout, Messages, Complaints 5-step wizard, AI Parent Helper (plain-language progress), Weekly Summaries",
+  "Role routing - after sign-in each role lands in its own workspace; scoped write access for the three roles (migration 0005)",
 ];
 
 export default function Plan() {
@@ -44,7 +44,7 @@ export default function Plan() {
           </ul>
         </Card>
         <Card>
-          <h2 className="mb-2 font-semibold text-green-700">✓ Basics — in this pilot build</h2>
+          <h2 className="mb-2 font-semibold text-green-700">✓ Basics - in this pilot build</h2>
           <ul className="list-disc space-y-1 pl-5 text-sm">
             {BASICS.map((b) => <li key={b}>{b}</li>)}
           </ul>
@@ -58,7 +58,7 @@ export default function Plan() {
           </p>
         </Card>
         <Card>
-          <h2 className="mb-2 font-semibold text-royal">Advanced — built in the Muse portal, to port next</h2>
+          <h2 className="mb-2 font-semibold text-royal">Advanced - built in the Muse portal, to port next</h2>
           <ul className="list-disc space-y-1 pl-5 text-sm">
             {ADVANCED_LIVE_IN_MUSE.map((b) => <li key={b}>{b}</li>)}
           </ul>
