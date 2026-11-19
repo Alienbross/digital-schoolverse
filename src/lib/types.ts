@@ -9,6 +9,11 @@ export type School = {
   logo_url: string | null;
   plan: string;
   status: string;
+  // Registration phases (migration 0006): each role registers only
+  // while its phase is open. All closed by default.
+  reg_teacher_open?: boolean;
+  reg_student_open?: boolean;
+  reg_parent_open?: boolean;
   created_at: string;
 };
 
@@ -29,7 +34,13 @@ export type Profile = {
   teacher_id: string | null;
   student_id: string | null;
   parent_id: string | null;
+  // Registration lifecycle (migration 0006): self-registered accounts
+  // start 'Pending' and only get full access once approved ('Active').
+  // 'Rejected' carries the reason in status_reason.
   status: string;
+  status_reason?: string | null;
+  approved_by?: string | null;
+  approved_at?: string | null;
   created_at: string;
 };
 
@@ -105,6 +116,9 @@ export type Teacher = {
   email: string | null;
   phone: string | null;
   role: string;
+  // Senior staff (migration 0006): the admin grants this teacher the
+  // right to approve parent registrations.
+  can_approve_parents?: boolean;
 };
 
 export type Student = {
@@ -134,4 +148,55 @@ export type ParentChild = {
   parent_id: string;
   student_id: string;
   relationship: string | null;
+  // Proposed links start 'Pending' (migration 0006) until the admin
+  // or the pupil's class teacher approves them.
+  status?: string;
+};
+
+// ---------------------------------------------------------------- registration + approvals (migration 0006)
+export type RegisterRole = "teacher" | "student" | "parent";
+
+export type RegistrationPhases = {
+  teacher: boolean;
+  student: boolean;
+  parent: boolean;
+};
+
+export type RegistrationClass = {
+  id: string;
+  name: string;
+  stage: string;
+  arm: string | null;
+};
+
+export type RegistrationStatus = {
+  school: {
+    id: string;
+    slug: string;
+    name: string;
+    motto: string | null;
+    logo_url: string | null;
+  };
+  phases: RegistrationPhases;
+  classes: RegistrationClass[];
+};
+
+export type PupilMatch = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  class_id: string | null;
+  class_name: string | null;
+};
+
+export type NotificationRow = {
+  id: string;
+  school_id: string;
+  recipient_id: string;
+  kind: string;
+  title: string;
+  body: string;
+  link: string | null;
+  is_read: boolean;
+  created_at: string;
 };
