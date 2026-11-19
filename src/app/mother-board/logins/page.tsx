@@ -25,7 +25,7 @@ export default function MotherBoardLogins() {
   }, []);
 
   const schoolName = (id: string | null) =>
-    schools.find((s) => s.id === id)?.name ?? (id ? "—" : "Platform (no school)");
+    schools.find((s) => s.id === id)?.name ?? (id ? "-" : "Platform (no school)");
 
   const setStatus = async (p: Profile, status: string) => {
     const { error } = await supabase.from("profiles").update({ status }).eq("id", p.id);
