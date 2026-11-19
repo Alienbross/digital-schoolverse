@@ -46,7 +46,9 @@ Without env vars the app still builds and runs, but shows a
 2. In the Supabase SQL editor, run
    `supabase/migrations/0001_initial_schema.sql`, then
    `supabase/migrations/0002_auth_and_mother_board.sql`, then
-   `supabase/migrations/0003_school_logos.sql` (school logos bucket).
+   `supabase/migrations/0003_school_logos.sql` (school logos bucket),
+   then `supabase/migrations/0004_school_slugs.sql` (per-school path
+   URLs — each school gets its own address, e.g. `/greenfield`).
 3. Copy the project URL + anon key (Settings → API) into `.env.local`.
 
 ## Auth + Mother Board (live in this build)
@@ -61,9 +63,19 @@ Without env vars the app still builds and runs, but shows a
   delete), Invites, Analytics, Plans, Support (complaints, urgent
   first), Access Model.
 - **Invites**: generating an invite creates a record with a token and
-  a 7-day expiry; the invite link is `/invite/<token>`. The invitee
-  sets a password and logs in. **No email is sent by the app yet** —
-  the Mother Board shows the link and the owner shares it.
+  a 7-day expiry; the invite link is `/<school-slug>/invite/<token>`
+  (or `/invite/<token>` without a slug). The invitee sets a password
+  and logs in. **No email is sent by the app yet** — the Mother Board
+  shows the link and the owner shares it.
+- **Per-school path URLs**: each school has a short name (slug, e.g.
+  `greenfield`) set by the platform owner when the school is created,
+  and its own address `digital-schoolverse.vercel.app/greenfield`.
+  The whole workspace works under `/<slug>/…` (`/greenfield/students`,
+  `/greenfield/setup`, …) with that school's logo in the header, and
+  sign-in at `/<slug>/login` lands in that school. The plain `/…`
+  routes keep working for the platform owner. An unknown slug shows a
+  "School not found" page, and a user opening another school's path
+  sees a "belongs to another school" page — RLS still enforces it.
 - **First owner login**: create the user in Supabase → Authentication
   → Users, then insert their `profiles` row with role
   `platform_owner` in the SQL editor. Full steps in
