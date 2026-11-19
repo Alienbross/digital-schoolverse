@@ -27,7 +27,7 @@ export default function Overview() {
   const pathname = usePathname();
 
   // Teachers, students and parents land in their own workspace, not
-  // on the admin overview — send them there when they open the root
+  // on the admin overview - send them there when they open the root
   // of a school portal (login already does this; this covers a
   // bookmarked /greenfield or a plain / visit).
   useEffect(() => {
@@ -118,15 +118,15 @@ export default function Overview() {
       <ConfigBanner />
       {profile && !canManage && (
         <div className="mb-4 rounded-xl border border-skybrand/40 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-          Signed in as {profile.role.replace("_", " ")} — your workspace is{" "}
+          Signed in as {profile.role.replace("_", " ")} - your workspace is{" "}
           <Link href={`${base}/${profile.role}`} className="font-semibold text-royal">
             here →
           </Link>
         </div>
       )}
       <PageHeader
-        title={schoolName ? `Welcome — ${schoolName}` : "Welcome to Digital SchoolVerse"}
-        sub="Foundation + Admin core. Basics first — Advanced features live behind the paywall."
+        title={schoolName ? `Welcome - ${schoolName}` : "Welcome to Digital SchoolVerse"}
+        sub="Foundation + Admin core. Basics first - Advanced features live behind the paywall."
       />
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
         {cards.map((c) => (
@@ -151,7 +151,7 @@ export default function Overview() {
       )}
       <Card>
         <h2 className="mb-3 text-lg font-semibold">
-          Setup checklist — {doneCount} of {steps.length} done
+          Setup checklist - {doneCount} of {steps.length} done
         </h2>
         <ul className="space-y-2">
           {steps.map((s) => (
