@@ -20,8 +20,11 @@ import { btnCls, Card, inputCls, labelCls, PageHeader } from "@/components/ui";
  *  there is no session yet: the token is saved and the profile is
  *  finished on first sign-in (see /login). To skip that step, turn off
  *  "Confirm email" in Supabase -> Authentication -> Providers -> Email.
+ *
+ *  On a school path (/<slug>/invite/<token>) the person lands back in
+ *  that school's portal after accepting.
  */
-export default function AcceptInvite() {
+export default function AcceptInvite({ schoolSlug }: { schoolSlug?: string }) {
   const params = useParams<{ token: string }>();
   const token = params.token;
   const router = useRouter();
@@ -147,11 +150,7 @@ export default function AcceptInvite() {
         <p className="mb-4 text-sm text-slate-500">{msg}</p>
         <button
           className={btnCls}
-          onClick={() =>
-            router.replace(
-              invite.role === "school_admin" ? "/" : "/",
-            )
-          }
+          onClick={() => router.replace(schoolSlug ? `/${schoolSlug}` : "/")}
         >
           Go to your portal →
         </button>
