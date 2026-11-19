@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { useAuth, useCanManage } from "@/lib/auth";
 import type { ClassRow, ClassSubject, School, Subject, Teacher } from "@/lib/types";
 import {
   btnCls,
@@ -13,6 +14,9 @@ import {
 } from "@/components/ui";
 
 export default function Subjects() {
+  const { schoolId, profile, loading: authLoading } = useAuth();
+  const canManage = useCanManage();
+  const readOnly = !!profile && !canManage;
   const [school, setSchool] = useState<School | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<ClassRow[]>([]);
@@ -25,7 +29,9 @@ export default function Subjects() {
   const [msg, setMsg] = useState("");
 
   const load = async () => {
-    const { data: s } = await supabase.from("schools").select("*").order("created_at").limit(1).single();
+    const { data: s } = schoolId
+      ? await supabase.from("schools").select("*").eq("id", schoolId).single()
+      : await supabase.from("schools").select("*").order("created_at").limit(1).single();
     if (!s) return;
     setSchool(s);
     const { data: sub } = await supabase.from("subjects").select("*").eq("school_id", s.id).order("name");
@@ -34,14 +40,17 @@ export default function Subjects() {
     setClasses(c ?? []);
     const { data: t } = await supabase.from("teachers").select("*").eq("school_id", s.id).order("last_name");
     setTeachers(t ?? []);
-    const { data: a } = await supabase.from("class_subjects").select("*");
+    const classIds = (c ?? []).map((x) => x.id);
+    const { data: a } = classIds.length
+      ? await supabase.from("class_subjects").select("*").in("class_id", classIds)
+      : { data: [] as ClassSubject[] };
     setAssigned(a ?? []);
   };
 
   useEffect(() => {
-    if (isSupabaseConfigured) load();
+    if (isSupabaseConfigured && !authLoading) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading, schoolId]);
 
   const addSubject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,13 +87,18 @@ export default function Subjects() {
     <div>
       <ConfigBanner />
       <PageHeader title="Subjects" sub="Subjects, and which class takes each one — with its subject teacher." />
+      {readOnly && (
+        <div className="mb-4 rounded-xl border border-skybrand/40 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          Signed in as {profile?.role.replace("_", " ")} — read-only view.
+        </div>
+      )}
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <h2 className="mb-3 font-semibold">Add a subject</h2>
           <form onSubmit={addSubject} className="mb-6 flex gap-2">
             <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Mathematics" />
-            <button className={btnCls} disabled={!isSupabaseConfigured}>Add</button>
+            <button className={btnCls} disabled={!isSupabaseConfigured || readOnly}>Add</button>
           </form>
           <h2 className="mb-3 font-semibold">Assign to a class</h2>
           <form onSubmit={assign} className="space-y-3">
@@ -103,7 +117,7 @@ export default function Subjects() {
                 <option value="">— None yet —</option>
                 {teachers.map((t) => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
               </select></div>
-            <button className={btnCls} disabled={!isSupabaseConfigured}>Assign subject</button>
+            <button className={btnCls} disabled={!isSupabaseConfigured || readOnly}>Assign subject</button>
           </form>
         </Card>
         <div className="space-y-4">
