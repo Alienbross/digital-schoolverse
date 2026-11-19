@@ -7,7 +7,7 @@ import type { RegisterRole } from "@/lib/types";
 
 const ROLES: RegisterRole[] = ["teacher", "student", "parent"];
 
-/** /<school-slug>/register/<role> — public self-registration for one
+/** /<school-slug>/register/<role> - public self-registration for one
  *  role at this school. No invite needed; no sign-in needed. */
 export default function SchoolRegisterRole() {
   const params = useParams<{ school: string; role: string }>();
