@@ -110,8 +110,9 @@ values ('<PASTE-THE-UUID-HERE>', 'alien4bross@gmail.com', 'Iferetimi', 'platform
   tutor, weekly summaries) are built in the Muse portal and are
   ported next; the roles and the read-only RLS already exist.
 - **Platform owner viewing a school workspace** — pick the school in
-  the sidebar ("View school workspace as"). With no school picked,
-  the workspace shows the first school.
+  the sidebar ("View school workspace as") and you open that school's
+  own path (e.g. `/greenfield`). With no school picked, the workspace
+  shows the first school.
 
 ## 7. Security notes
 
@@ -146,3 +147,31 @@ owner or that school's own school_admin may upload, replace or delete it.
 - Schools with no logo yet show their initials instead. If the bucket
   already exists from an earlier manual setup, the migration updates it
   in place; no data is lost.
+
+## 9. Per-school path URLs
+
+Run migration `0004_school_slugs.sql` in the Supabase SQL editor (after
+0003). It adds a unique `slug` to schools, backfills one for every
+school that already exists (from its name — "Greenfield Academy" ->
+"greenfield-academy", with a -2, -3, … suffix on a clash), and adds a
+public `school_by_slug()` lookup (branding fields only, like the logo
+function in migration 0003).
+
+- The Mother Board sets the slug when a school is created (suggested
+  from the name, editable; lowercase letters, numbers and hyphens
+  only, 2–50 characters, and a taken short name is refused with a
+  clear error). It can be changed later from Schools or School
+  Control — but changing it moves the school's address, so tell the
+  school first.
+- Each school's address is `digital-schoolverse.vercel.app/<slug>`
+  (e.g. `/greenfield`); the whole workspace works under it
+  (`/greenfield/students`, `/greenfield/setup`, …), sign-in is at
+  `/<slug>/login`, and invite links carry the path
+  (`/<slug>/invite/<token>`). The plain `/…` routes keep working for
+  the platform owner.
+- Slugs that would clash with real routes (`login`, `invite`,
+  `mother-board`, `setup`, `students`, …) are reserved and cannot be
+  used. An unknown slug shows a "School not found" page; a user who
+  opens another school's path sees a "belongs to another school"
+  page. RLS from migration 0002 is unchanged and still enforces the
+  separation — the slug only picks which portal the URL points at.
