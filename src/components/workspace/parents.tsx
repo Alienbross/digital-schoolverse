@@ -94,10 +94,10 @@ export default function Parents() {
   return (
     <div>
       <ConfigBanner />
-      <PageHeader title="Parents" sub="Parents, linked to their children — siblings share one parent record." />
+      <PageHeader title="Parents" sub="Parents, linked to their children - siblings share one parent record." />
       {readOnly && (
         <div className="mb-4 rounded-xl border border-skybrand/40 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-          Signed in as {profile?.role.replace("_", " ")} — read-only view.
+          Signed in as {profile?.role.replace("_", " ")} - read-only view.
         </div>
       )}
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
@@ -120,12 +120,12 @@ export default function Parents() {
             <form onSubmit={link} className="space-y-3">
               <div><label className={labelCls}>Parent</label>
                 <select className={inputCls} value={linkParent} onChange={(e) => setLinkParent(e.target.value)}>
-                  <option value="">— Pick a parent —</option>
+                  <option value="">- Pick a parent -</option>
                   {parents.map((p) => <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>)}
                 </select></div>
               <div><label className={labelCls}>Child</label>
                 <select className={inputCls} value={linkStudent} onChange={(e) => setLinkStudent(e.target.value)}>
-                  <option value="">— Pick a pupil —</option>
+                  <option value="">- Pick a pupil -</option>
                   {students.map((s) => <option key={s.id} value={s.id}>{s.first_name} {s.last_name} ({s.admission_no})</option>)}
                 </select></div>
               <div><label className={labelCls}>Relationship</label>
