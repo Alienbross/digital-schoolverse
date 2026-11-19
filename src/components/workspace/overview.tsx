@@ -48,6 +48,7 @@ export default function Overview() {
     subjects: 0,
   });
   const [schoolName, setSchoolName] = useState<string | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     if (!isSupabaseConfigured || authLoading) return;
@@ -80,6 +81,15 @@ export default function Overview() {
       if (schoolId) schoolQuery = supabase.from("schools").select("name").eq("id", schoolId);
       const { data } = await schoolQuery.single();
       if (data) setSchoolName(data.name);
+      // Pending registrations waiting for approval (migration 0006).
+      if (schoolId) {
+        const { count: pc } = await supabase
+          .from("profiles")
+          .select("*", { count: "exact", head: true })
+          .eq("school_id", schoolId)
+          .eq("status", "Pending");
+        setPendingCount(pc ?? 0);
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, schoolId]);
@@ -128,6 +138,17 @@ export default function Overview() {
           </Link>
         ))}
       </div>
+      {canManage && (
+        <Link href={`${base}/registration`}>
+          <Card>
+            <p className="text-3xl font-bold text-amber-600">{pendingCount}</p>
+            <p className="text-sm text-slate-500">
+              Registrations waiting for approval{" "}
+              <span className="font-semibold text-royal">Review →</span>
+            </p>
+          </Card>
+        </Link>
+      )}
       <Card>
         <h2 className="mb-3 text-lg font-semibold">
           Setup checklist — {doneCount} of {steps.length} done
