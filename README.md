@@ -88,6 +88,29 @@ Without env vars the app still builds and runs, but shows a
   routes keep working for the platform owner. An unknown slug shows a
   "School not found" page, and a user opening another school's path
   sees a "belongs to another school" page — RLS still enforces it.
+- **Self-registration + approvals** (migration 0006): teachers,
+  students and parents register themselves from the school's own
+  link — `/<slug>/register` (chooser), `/<slug>/register/teacher`,
+  `/<slug>/register/student`, `/<slug>/register/parent`. No invite
+  needed. The admin opens each phase in order in School Setup
+  (teachers, then students, then parents — or all at once); a closed
+  phase shows "not open yet". Parents add their pupil(s) by admission
+  number (best) or name + class; each link starts as a proposal the
+  admin and the pupil's class teacher are notified about, so a wrong
+  child / wrong class is caught before approval. Accounts start
+  **Pending** and can only complete their profile/setup until
+  approved — registers, scores, fees, complaints, messages and CBT
+  stay locked (banner + locked tabs in the workspaces, and RLS in
+  migration 0006 refuses the writes). Approvals live under
+  Registration & Approvals: teachers by the school admin only,
+  students by their class teacher or the admin, parents by the admin
+  or senior staff (a teacher the admin flags "can approve parents" in
+  Teachers & Staff). Approving a parent also approves their pupil
+  links. In-app notifications (bell in the header, no email yet) go
+  to the admin on every registration, to class teachers on pupil
+  links, and to the user on approval / rejection. School admins still
+  do NOT self-register — the platform owner invites them from the
+  Mother Board, as before.
 - **First owner login**: create the user in Supabase → Authentication
   → Users, then insert their `profiles` row with role
   `platform_owner` in the SQL editor. Full steps in
@@ -114,6 +137,11 @@ Without env vars the app still builds and runs, but shows a
 
 ## What still needs the user
 
+- **Run migration 0006** in the Supabase SQL editor (see above) —
+  until then the register pages show "School not found" (the
+  `school_registration_status` RPC does not exist yet), approvals do
+  not run, and the phase switches have nowhere to save. Run it after
+  0005, then push + redeploy.
 - **Run migration 0005** in the Supabase SQL editor (see above) —
   until then teachers cannot save registers/scores, students cannot
   submit CBT attempts, and parents cannot pay online or raise
