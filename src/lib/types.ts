@@ -5,6 +5,7 @@ export type School = {
   email: string | null;
   phone: string | null;
   address: string | null;
+  logo_url: string | null;
   plan: string;
   status: string;
   created_at: string;
