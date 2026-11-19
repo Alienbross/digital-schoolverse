@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { PENDING_INVITE_KEY, useAuth } from "@/lib/auth";
 import { completeInvite, fetchInvite } from "@/lib/invites";
+import { fetchSchoolBranding, type SchoolBranding } from "@/lib/logo";
+import { SchoolLogo } from "@/components/school-logo";
 import type { SchoolInvite } from "@/lib/types";
 import { btnCls, Card, inputCls, labelCls, PageHeader } from "@/components/ui";
 
@@ -25,6 +27,7 @@ export default function AcceptInvite() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [invite, setInvite] = useState<SchoolInvite | null>(null);
+  const [branding, setBranding] = useState<SchoolBranding | null>(null);
   const [fetchState, setFetchState] = useState("loading");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -53,6 +56,7 @@ export default function AcceptInvite() {
       }
       setInvite(inv);
       setFetchState("ready");
+      setBranding(await fetchSchoolBranding(inv.school_id));
     })();
   }, [token]);
 
@@ -161,6 +165,15 @@ export default function AcceptInvite() {
         title={`Join ${invite.school_name}`}
         sub={`You were invited as ${invite.role.replace("_", " ")} — ${invite.email}. Set a password to create your login.`}
       />
+      {branding && (
+        <div className="mb-4 flex items-center gap-3">
+          <SchoolLogo name={branding.name} logoUrl={branding.logo_url} size={56} />
+          <div>
+            <p className="font-bold text-ink">{branding.name}</p>
+            {branding.motto && <p className="text-sm italic text-slate-500">{branding.motto}</p>}
+          </div>
+        </div>
+      )}
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
       <div className="max-w-md">
         <Card>
