@@ -80,16 +80,16 @@ export default function Subjects() {
     list.find((x) => x.id === id)?.name ?? "?";
   const teacherNameOf = (id: string | null) => {
     const t = teachers.find((x) => x.id === id);
-    return t ? `${t.first_name} ${t.last_name}` : "—";
+    return t ? `${t.first_name} ${t.last_name}` : "-";
   };
 
   return (
     <div>
       <ConfigBanner />
-      <PageHeader title="Subjects" sub="Subjects, and which class takes each one — with its subject teacher." />
+      <PageHeader title="Subjects" sub="Subjects, and which class takes each one - with its subject teacher." />
       {readOnly && (
         <div className="mb-4 rounded-xl border border-skybrand/40 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-          Signed in as {profile?.role.replace("_", " ")} — read-only view.
+          Signed in as {profile?.role.replace("_", " ")} - read-only view.
         </div>
       )}
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
@@ -104,17 +104,17 @@ export default function Subjects() {
           <form onSubmit={assign} className="space-y-3">
             <div><label className={labelCls}>Class</label>
               <select className={inputCls} value={classId} onChange={(e) => setClassId(e.target.value)}>
-                <option value="">— Pick a class —</option>
+                <option value="">- Pick a class -</option>
                 {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select></div>
             <div><label className={labelCls}>Subject</label>
               <select className={inputCls} value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
-                <option value="">— Pick a subject —</option>
+                <option value="">- Pick a subject -</option>
                 {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select></div>
             <div><label className={labelCls}>Subject teacher</label>
               <select className={inputCls} value={teacherId} onChange={(e) => setTeacherId(e.target.value)}>
-                <option value="">— None yet —</option>
+                <option value="">- None yet -</option>
                 {teachers.map((t) => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
               </select></div>
             <button className={btnCls} disabled={!isSupabaseConfigured || readOnly}>Assign subject</button>
@@ -133,7 +133,7 @@ export default function Subjects() {
             <ul className="space-y-2 text-sm">
               {assigned.map((a) => (
                 <li key={a.id} className="rounded-lg bg-mist px-3 py-2">
-                  {nameOf(classes, a.class_id)} — {nameOf(subjects, a.subject_id)}
+                  {nameOf(classes, a.class_id)} - {nameOf(subjects, a.subject_id)}
                   <span className="block text-xs text-slate-500">Teacher: {teacherNameOf(a.teacher_id)}</span>
                 </li>
               ))}
