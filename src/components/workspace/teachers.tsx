@@ -78,7 +78,7 @@ export default function Teachers() {
       <PageHeader title="Teachers & Staff" sub="Teachers and other staff in one register." />
       {readOnly && (
         <div className="mb-4 rounded-xl border border-skybrand/40 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-          Signed in as {profile?.role.replace("_", " ")} — read-only view.
+          Signed in as {profile?.role.replace("_", " ")} - read-only view.
         </div>
       )}
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
@@ -110,7 +110,7 @@ export default function Teachers() {
             {teachers.map((t) => (
               <li key={t.id} className="rounded-lg bg-mist px-3 py-2">
                 <strong>{t.first_name} {t.last_name}</strong> · {t.role}
-                <span className="block text-xs text-slate-500">{t.email ?? "—"} · {t.phone ?? "—"}</span>
+                <span className="block text-xs text-slate-500">{t.email ?? "-"} · {t.phone ?? "-"}</span>
                 <label className="mt-1 flex items-center gap-2 text-xs font-semibold text-slate-600">
                   <input
                     type="checkbox"
@@ -118,7 +118,7 @@ export default function Teachers() {
                     disabled={readOnly}
                     onChange={(e) => toggleSenior(t, e.target.checked)}
                   />
-                  Senior staff — can approve parent registrations
+                  Senior staff - can approve parent registrations
                 </label>
               </li>
             ))}
