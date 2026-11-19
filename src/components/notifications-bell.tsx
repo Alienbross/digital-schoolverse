@@ -11,10 +11,10 @@ import {
 } from "@/lib/registration";
 import type { NotificationRow } from "@/lib/types";
 
-/** In-app notifications bell (migration 0006, in-app only — no email
+/** In-app notifications bell (migration 0006, in-app only - no email
  *  yet). Shows the unread count for the signed-in user; opening the
  *  list marks everything read. Shown to the school admin and to
- *  teachers — the roles that get notified about registrations and
+ *  teachers - the roles that get notified about registrations and
  *  pupil links. */
 export default function NotificationsBell() {
   const { user, profile, loading } = useAuth();
