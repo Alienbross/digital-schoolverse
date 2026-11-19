@@ -55,6 +55,32 @@ const PARENT_NAV = [
 
 const PUBLIC_PREFIXES = ["/login", "/invite", "/reset-password"];
 
+/** Active-nav matching. Root items (Overview "/", Mother Board
+ *  "/mother-board") match exactly; every other item also matches its
+ *  sub-pages, so /students/123/report-card still highlights Students
+ *  and /mother-board/schools/123 still highlights Schools. */
+function navItemActive(pathname: string, href: string, isRoot: boolean): boolean {
+  if (isRoot) return pathname === href;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/** Sidebar link classes. The sidebar is deep navy (#0B2A6B) in both
+ *  themes, so the active item gets the brand royal blue (#1D4ED8)
+ *  background with white bold text and a sky (#38BDF8) left accent
+ *  bar - readable at a glance in Light and Dark. */
+function sidebarLinkClass(active: boolean): string {
+  return active
+    ? "relative rounded-lg bg-royal px-3 py-2 text-sm font-semibold text-white shadow-[inset_4px_0_0_#38BDF8]"
+    : "rounded-lg px-3 py-2 text-sm font-medium text-white/85 hover:bg-white/10 hover:text-white";
+}
+
+/** Phone top-strip link classes. Active section is a royal pill. */
+function phoneLinkClass(active: boolean): string {
+  return active
+    ? "whitespace-nowrap rounded-full bg-royal px-3 py-1 font-semibold text-white"
+    : "whitespace-nowrap px-1 py-1 font-medium text-slate-600 hover:text-royal";
+}
+
 function isPublic(pathname: string) {
   return isPublicPath(pathname);
 }
@@ -72,7 +98,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const { loading, user, profile, isOwner, ownerSchoolId, setOwnerSchoolId, signOut, schoolId, setPathSlug, pathSchool } =
     useAuth();
   const [schools, setSchools] = useState<School[]>([]);
-  // The school whose portal this is — its logo brands the header for
+  // The school whose portal this is - its logo brands the header for
   // every user of that school. Mother Board pages keep the platform
   // branding instead (see below).
   const [currentSchool, setCurrentSchool] = useState<School | null>(null);
@@ -173,18 +199,23 @@ export default function AppShell({ children }: { children: ReactNode }) {
             </p>
           </div>
           <nav className="flex flex-col gap-1">
-            {SCHOOL_NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={withBase(base, item.href)}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-white/85 hover:bg-white/10 hover:text-white"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {SCHOOL_NAV.map((item) => {
+              const href = withBase(base, item.href);
+              const active = navItemActive(pathname, href, item.href === "/");
+              return (
+                <Link
+                  key={item.href}
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  className={sidebarLinkClass(active)}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
           <p className="mt-auto pt-8 text-xs text-white/50">
-            Free pilot build — Supabase + Vercel.
+            Free pilot build - Supabase + Vercel.
           </p>
         </aside>
         <div className="flex min-w-0 flex-1 flex-col">
@@ -246,7 +277,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <p className="mt-2 text-sm text-slate-500">
           You are signed in as {user.email}, but this account has no profile
           (role / school) yet. If you came from an invite link, open it again
-          while signed in — or ask the platform owner to send you a new
+          while signed in - or ask the platform owner to send you a new
           invite.
         </p>
         <button
@@ -270,16 +301,24 @@ export default function AppShell({ children }: { children: ReactNode }) {
           : PARENT_NAV;
   const inMotherBoard = pathname.startsWith("/mother-board");
 
-  const navLinks = (items: { href: string; label: string }[]) =>
-    items.map((item) => (
-      <Link
-        key={item.href}
-        href={item.href}
-        className="rounded-lg px-3 py-2 text-sm font-medium text-white/85 hover:bg-white/10 hover:text-white"
-      >
-        {item.label}
-      </Link>
-    ));
+  const navLinks = (
+    items: { href: string; label: string }[],
+    opts: { base?: string; rootHref?: string } = {},
+  ) =>
+    items.map((item) => {
+      const href = opts.base ? withBase(opts.base, item.href) : item.href;
+      const active = navItemActive(pathname, href, item.href === (opts.rootHref ?? "/"));
+      return (
+        <Link
+          key={item.href}
+          href={href}
+          aria-current={active ? "page" : undefined}
+          className={sidebarLinkClass(active)}
+        >
+          {item.label}
+        </Link>
+      );
+    });
 
   return (
     <div className="flex min-h-screen">
@@ -306,7 +345,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/60">
               Mother Board
             </p>
-            <nav className="flex flex-col gap-1">{navLinks(MB_NAV)}</nav>
+            <nav className="flex flex-col gap-1">{navLinks(MB_NAV, { rootHref: "/mother-board" })}</nav>
             <label className="mt-4 mb-1 block text-xs font-semibold text-white/60">
               View school workspace as
             </label>
@@ -315,7 +354,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               value={pathSchool?.id ?? ownerSchoolId ?? ""}
               onChange={(e) => pickSchool(e.target.value)}
             >
-              <option value="">— All schools (overview) —</option>
+              <option value="">- All schools (overview) -</option>
               {schools.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -328,7 +367,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/60">
           {isOwner ? "School workspace" : "My school"}
         </p>
-        <nav className="flex flex-col gap-1">{navLinks(nav.map((item) => ({ ...item, href: withBase(base, item.href) })))}</nav>
+        <nav className="flex flex-col gap-1">{navLinks(nav, { base })}</nav>
 
         <div className="mt-auto pt-8">
           <NotificationsBell />
@@ -367,19 +406,26 @@ export default function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
           <nav className="mt-2 flex gap-3 overflow-x-auto text-sm">
-            {(isOwner ? [...MB_NAV, ...nav] : nav).map((item) => (
-              <Link
-                key={item.href}
-                href={
-                  item.href.startsWith("/mother-board")
-                    ? item.href
-                    : withBase(base, item.href)
-                }
-                className="whitespace-nowrap font-medium text-slate-600 hover:text-royal"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {(isOwner ? [...MB_NAV, ...nav] : nav).map((item) => {
+              const href = item.href.startsWith("/mother-board")
+                ? item.href
+                : withBase(base, item.href);
+              const active = navItemActive(
+                pathname,
+                href,
+                item.href === "/" || item.href === "/mother-board",
+              );
+              return (
+                <Link
+                  key={item.href}
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  className={phoneLinkClass(active)}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
           {isOwner && (
             <select
@@ -388,7 +434,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               onChange={(e) => pickSchool(e.target.value)}
               aria-label="View school workspace as"
             >
-              <option value="">— All schools (overview) —</option>
+              <option value="">- All schools (overview) -</option>
               {schools.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
