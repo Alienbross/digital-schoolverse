@@ -32,10 +32,21 @@ const MB_NAV = [
   { href: "/mother-board/access", label: "Access Model" },
 ];
 
-// Read-only roles see only the overview and the plan; their full
-// dashboards (from the Muse portal) are a later port.
-const READ_ONLY_NAV = [
-  { href: "/", label: "Overview" },
+// Each role lands in its own workspace; the admin/owner keep the
+// full school workspace. The platform owner also sees the Mother
+// Board nav above.
+const TEACHER_NAV = [
+  { href: "/teacher", label: "Teacher workspace" },
+  { href: "/plan", label: "Plan & Roadmap" },
+];
+
+const STUDENT_NAV = [
+  { href: "/student", label: "Student workspace" },
+  { href: "/plan", label: "Plan & Roadmap" },
+];
+
+const PARENT_NAV = [
+  { href: "/parent", label: "Parent workspace" },
   { href: "/plan", label: "Plan & Roadmap" },
 ];
 
@@ -247,7 +258,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   const roleLabel = profile.role.replace("_", " ");
   const nav =
-    isOwner || profile.role === "school_admin" ? SCHOOL_NAV : READ_ONLY_NAV;
+    isOwner || profile.role === "school_admin"
+      ? SCHOOL_NAV
+      : profile.role === "teacher"
+        ? TEACHER_NAV
+        : profile.role === "student"
+          ? STUDENT_NAV
+          : PARENT_NAV;
   const inMotherBoard = pathname.startsWith("/mother-board");
 
   const navLinks = (items: { href: string; label: string }[]) =>
