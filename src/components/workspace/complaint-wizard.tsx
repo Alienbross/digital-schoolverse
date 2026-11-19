@@ -12,7 +12,7 @@ import { btnCls, Card, inputCls, labelCls } from "@/components/ui";
 const STEPS = ["What happened", "When & where", "Details", "Contact & priority", "Review & send"];
 
 /** Guided 5-step complaint / query wizard (complaints table, source
- *  "Online form"). Step 1 picks the category — choosing Bullying
+ *  "Online form"). Step 1 picks the category - choosing Bullying
  *  takes the urgent route: priority is forced to Urgent and the
  *  reporter is told a senior staff member is alerted straight away. */
 export default function ComplaintWizard({
@@ -93,9 +93,9 @@ export default function ComplaintWizard({
   if (doneRef) {
     return (
       <Card>
-        <h2 className="font-semibold text-green-700">Sent — thank you.</h2>
+        <h2 className="font-semibold text-green-700">Sent - thank you.</h2>
         <p className="mt-2 text-sm">
-          Your reference is <strong>{doneRef}</strong>. Keep it — you can
+          Your reference is <strong>{doneRef}</strong>. Keep it - you can
           quote it when you follow up with the school.
         </p>
         {isBullying && (
@@ -125,7 +125,7 @@ export default function ComplaintWizard({
   return (
     <Card>
       <p className="text-xs font-semibold text-slate-500">
-        Step {step + 1} of 5 — {STEPS[step]}
+        Step {step + 1} of 5 - {STEPS[step]}
       </p>
       <div className="mb-4 mt-2 flex gap-1">
         {STEPS.map((s, i) => (
@@ -161,7 +161,7 @@ export default function ComplaintWizard({
             <div>
               <label className={labelCls}>About pupil</label>
               <select className={inputCls} value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-                <option value="">— General (not about one pupil) —</option>
+                <option value="">- General (not about one pupil) -</option>
                 {studentOptions.map((id) => (
                   <option key={id} value={id}>{studentLabels[id] ?? id}</option>
                 ))}
@@ -204,10 +204,10 @@ export default function ComplaintWizard({
           <p><strong>Category:</strong> {category} · <strong>Priority:</strong> {finalPriority}</p>
           <p><strong>Subject:</strong> {subject}</p>
           {studentId && <p><strong>About:</strong> {studentLabels[studentId]}</p>}
-          <p><strong>When / where / who:</strong> {[when, where, who].filter(Boolean).join(" · ") || "—"}</p>
+          <p><strong>When / where / who:</strong> {[when, where, who].filter(Boolean).join(" · ") || "-"}</p>
           <p><strong>Details:</strong> {details}</p>
-          <p><strong>Outcome wanted:</strong> {outcome || "—"}</p>
-          <p><strong>Contact:</strong> {contact || "—"}</p>
+          <p><strong>Outcome wanted:</strong> {outcome || "-"}</p>
+          <p><strong>Contact:</strong> {contact || "-"}</p>
         </div>
       )}
 
