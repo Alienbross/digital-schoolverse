@@ -32,6 +32,11 @@ export const RESERVED_SLUGS = new Set([
   "dashboard",
   "school",
   "schools",
+  // Workspace routes — a school path must never swallow them:
+  // /teacher, /student and /parent are real pages, not school slugs.
+  "teacher",
+  "student",
+  "parent",
 ]);
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
