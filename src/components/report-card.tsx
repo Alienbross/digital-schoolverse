@@ -41,7 +41,7 @@ export function ReportCardHeader({
         <h1 className="text-2xl font-bold text-ink">{school.name}</h1>
         {school.motto && <p className="text-sm italic text-slate-500">{school.motto}</p>}
         <p className="mt-1 text-sm font-semibold text-royal">
-          Term Report Card — {termLabel}
+          Term Report Card - {termLabel}
         </p>
       </div>
     </div>
@@ -102,9 +102,9 @@ export function ReportCardBody({
             {rows.map((r) => (
               <tr key={r.subject}>
                 <td className="border border-line px-2 py-2 font-medium">{r.subject}</td>
-                <td className="border border-line px-2 py-2">{r.test ?? "—"}</td>
-                <td className="border border-line px-2 py-2">{r.assignment ?? "—"}</td>
-                <td className="border border-line px-2 py-2">{r.exam ?? "—"}</td>
+                <td className="border border-line px-2 py-2">{r.test ?? "-"}</td>
+                <td className="border border-line px-2 py-2">{r.assignment ?? "-"}</td>
+                <td className="border border-line px-2 py-2">{r.exam ?? "-"}</td>
                 <td className="border border-line px-2 py-2 font-semibold">{r.total}</td>
                 <td className="border border-line px-2 py-2 font-semibold">{r.grade}</td>
                 <td className="border border-line px-2 py-2">{r.remark ?? ""}</td>
@@ -117,13 +117,13 @@ export function ReportCardBody({
       <div className="mt-4 grid gap-2 text-sm sm:grid-cols-3">
         <p className="rounded-lg bg-mist px-3 py-2">
           <strong>Overall average:</strong>{" "}
-          {average !== null ? `${average.toFixed(1)} (${gradeFor(average)})` : "—"}
+          {average !== null ? `${average.toFixed(1)} (${gradeFor(average)})` : "-"}
         </p>
         <p className="rounded-lg bg-mist px-3 py-2">
           <strong>Class position:</strong>{" "}
           {position !== null && positionOf !== null
             ? `${position} of ${positionOf}`
-            : "—"}
+            : "-"}
         </p>
         <p className="rounded-lg bg-mist px-3 py-2">
           <strong>Attendance:</strong> {attendanceText}
