@@ -12,15 +12,10 @@ const BASICS = [
 ];
 
 const ADVANCED_LIVE_IN_MUSE = [
-  "AI Teacher Assistant — lesson notes, questions, report comments, class summaries",
-  "Online fee payment — test checkout (Paystack live keys needed for real money)",
-  "CBT & auto-marking — graded / practice, counts into Scores by teacher choice",
   "Advanced analytics — at-risk list, trends, fee collection, complaints",
   "SMS & WhatsApp alerts — test send (live provider needed for real messages)",
-  "Parent weekly summaries — per-pupil plain-language weeks",
   "Bus, clinic & discipline — routes, visits, records",
   "Multi-branch & custom report cards — branches, per-branch templates",
-  "Online complaint forms — guided 5-step form + status checker",
 ];
 
 const ADVANCED_TODO = [
@@ -31,6 +26,10 @@ const ADVANCED_TODO = [
 
 const NOW_LIVE = [
   "Mother Board + role logins — Supabase Auth, profiles & invites, auth-based RLS (migration 0002), Light/Dark theme toggle",
+  "Teacher workspace (/<slug>/teacher) — My Classes, Attendance register, Scores & Results (Test /20, Assignment /10, Exam /70, Nigerian grades, class positions), Lesson Notes, Homework, Timetable, CBT practice-test builder, Messages, Complaints, AI Teacher Assistant (4 drafting tools, drafts only)",
+  "Student workspace (/<slug>/student) — My Subjects, Homework, Timetable, My Results + report card, Attendance %, CBT Practice (timed, auto-marked, retakes, never counts as a grade), AI Study Tutor (demo drafts), Help & Complaints with urgent bullying route",
+  "Parent workspace (/<slug>/parent) — My Children, per-child attendance / results / homework / timetable, Fees & Receipts with test online checkout, Messages, Complaints 5-step wizard, AI Parent Helper (plain-language progress), Weekly Summaries",
+  "Role routing — after sign-in each role lands in its own workspace; scoped write access for the three roles (migration 0005)",
 ];
 
 export default function Plan() {
@@ -50,10 +49,12 @@ export default function Plan() {
             {BASICS.map((b) => <li key={b}>{b}</li>)}
           </ul>
           <p className="mt-2 text-xs text-slate-400">
-            Note: the Basics list above describes the full feature set. This
-            pilot ships the Foundation + Admin core first; Attendance, Scores,
-            Fees, Complaints, Homework, Messages and Admissions are ported
-            next, in that order, from the Muse portal.
+            Note: the Basics list above describes the full feature set. The
+            Foundation + Admin core is live, and Attendance, Scores, Fees,
+            Complaints, Homework, Messages, CBT and weekly summaries now
+            live in the Teacher / Student / Parent workspaces. A dedicated
+            admin-side Attendance &amp; Scores overview and the Online
+            Admissions pipeline are still to come.
           </p>
         </Card>
         <Card>
