@@ -16,6 +16,7 @@ type Counts = {
   parents: number;
   terms: number;
   subjects: number;
+  applications: number;
 };
 
 export default function Overview() {
@@ -46,6 +47,7 @@ export default function Overview() {
     parents: 0,
     terms: 0,
     subjects: 0,
+    applications: 0,
   });
   const [schoolName, setSchoolName] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
@@ -61,10 +63,12 @@ export default function Overview() {
         "parents",
         "terms",
         "subjects",
+        "applications",
       ];
       const next: Counts = { ...counts };
       for (const t of tables) {
-        let q = supabase.from(t).select("*", { count: "exact", head: true });
+        const table = t === "applications" ? "admission_applications" : t;
+        let q = supabase.from(table).select("*", { count: "exact", head: true });
         // School users see only their school; the platform owner sees all
         // (or the school they picked in the header).
         if (schoolId && t !== "schools") q = q.eq("school_id", schoolId);
@@ -100,6 +104,7 @@ export default function Overview() {
     { label: "Create classes & arms", done: counts.classes > 0, href: `${base}/classes` },
     { label: "Add subjects", done: counts.subjects > 0, href: `${base}/subjects` },
     { label: "Add students (auto admission numbers DSV/…)", done: counts.students > 0, href: `${base}/students` },
+    { label: "Open admissions - first application received (ADM-…)", done: counts.applications > 0, href: `${base}/admissions` },
     { label: "Add teachers & staff", done: counts.teachers > 0, href: `${base}/teachers` },
     { label: "Add parents & link them to children", done: counts.parents > 0, href: `${base}/parents` },
   ];
@@ -111,6 +116,7 @@ export default function Overview() {
     { label: "Subjects", value: counts.subjects, href: `${base}/subjects` },
     { label: "Teachers & Staff", value: counts.teachers, href: `${base}/teachers` },
     { label: "Parents", value: counts.parents, href: `${base}/parents` },
+    { label: "Applications", value: counts.applications, href: `${base}/admissions` },
   ];
 
   return (
@@ -128,7 +134,7 @@ export default function Overview() {
         title={schoolName ? `Welcome - ${schoolName}` : "Welcome to Digital SchoolVerse"}
         sub="Foundation + Admin core. Basics first - Advanced features live behind the paywall."
       />
-      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-6">
         {cards.map((c) => (
           <Link key={c.label} href={c.href}>
             <Card>
