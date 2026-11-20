@@ -369,6 +369,9 @@ export default function StudentWorkspace() {
             )}
           </Card>
           <p className="text-sm">
+            <Link href={`${base}/students/${me?.id ?? ""}/profile`} className="mr-4 font-semibold text-royal">
+              Open my profile →
+            </Link>
             <Link href={`${base}/students/${me?.id ?? ""}/report-card`} className="font-semibold text-royal">
               Open the printable report card →
             </Link>
