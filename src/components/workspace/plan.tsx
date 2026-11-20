@@ -22,15 +22,17 @@ const ADVANCED_TODO = [
   "Live Paystack connection (needs Paystack account + keys)",
   "Live SMS / WhatsApp provider (needs provider choice + account)",
   "Live email provider for absence emails (Resend or SendGrid - needs provider choice + account; the sendAbsenceEmail plug-in point in src/lib/absence-emails.ts is ready)",
+  "Daily teacher-reminder digest email (same live email provider as above; the sendTeacherDigestEmail plug-in point in src/lib/teacher-digest.ts is ready)",
 ];
 
 const NOW_LIVE = [
   "Mother Board + role logins - Supabase Auth, profiles & invites, auth-based RLS (migration 0002), Light/Dark theme toggle",
   "Online Admissions - public apply form (/<slug>/admissions/apply) with admission form fee test checkout (ADM-PAY-…), document uploads (birth certificate, previous result, passport photo, other - private bucket, 5 MB, PDF/JPG/PNG), admin pipeline Submitted - Under review - Assessment - Offered / Rejected / Waitlisted - Enrolled, fee setting in School Setup (migration 0007)",
-  "Teacher workspace (/<slug>/teacher) - My Classes, Attendance register, Scores & Results (Test /20, Assignment /10, Exam /70, Nigerian grades, class positions), Lesson Notes, Homework, Timetable, CBT practice-test builder, Messages, Complaints, AI Teacher Assistant (4 drafting tools, drafts only)",
+  "Teacher workspace (/<slug>/teacher) - Reminders (Today digest + count badge), My Classes, Attendance register, Scores & Results (Test /20, Assignment /10, Exam /70, Nigerian grades, class positions), Lesson Notes, Homework, Timetable, CBT practice-test builder, Messages, Complaints, AI Teacher Assistant (4 drafting tools, drafts only)",
   "Student workspace (/<slug>/student) - My Subjects, Homework, Timetable, My Results + report card, Attendance %, CBT Practice (timed, auto-marked, retakes, never counts as a grade), AI Study Tutor (demo drafts), Help & Complaints with urgent bullying route",
   "Parent workspace (/<slug>/parent) - My Children, per-child attendance / results / homework / timetable, Fees & Receipts with test online checkout, Messages, Complaints 5-step wizard, AI Parent Helper (plain-language progress), Weekly Summaries",
   "Absence emails to parents - when a teacher marks a pupil Absent (or Late, as a milder notice) the parent gets a queued email notice in the portal (migration 0008); no live email provider is connected yet, so notices are labelled Queued - no live email provider yet and parents with no email on record are flagged Unreachable in the log",
+  "Teacher reminders - a Reminders tab in the teacher workspace with a Today digest (overdue first, then due today, then due soon): registers not taken, scores not entered, homework and CBT tests coming due, complaints assigned to the teacher still open, weekly summaries not shared yet; a count badge on the tab and an attention strip above the tabs; the admin Overview shows per-teacher task counts (registers due today, subjects with scores still to enter). Read-only - reminders never change a grade, a register or a fee. In-app only; a daily digest email is a plug-in point in src/lib/teacher-digest.ts (needs a live email provider)",
   "Role routing - after sign-in each role lands in its own workspace; scoped write access for the three roles (migration 0005)",
 ];
 
