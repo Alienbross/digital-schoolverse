@@ -60,7 +60,13 @@ Without env vars the app still builds and runs, but shows a
    `supabase/migrations/0007_admission_fees_uploads.sql` (admission
    form fee test checkout + document uploads), then
    `supabase/migrations/0008_absence_emails.sql` (absence emails to
-   parents - queued in the portal, no live email provider yet).
+   parents - queued in the portal, no live email provider yet), then
+   `supabase/migrations/0009_student_profile_shares.sql` (student
+   profile sharing), then
+   `supabase/migrations/0010_school_branding_colours.sql` (logo-driven
+   branding), then `supabase/migrations/0011_login_registration_revamp.sql`
+   (teacher class picks, pre-verified student registration, bulk staff
+   actions, admin profile reads).
 3. Copy the project URL + anon key (Settings → API) into `.env.local`.
 
 ## Auth + Mother Board (live in this build)
@@ -117,6 +123,20 @@ Without env vars the app still builds and runs, but shows a
   links, and to the user on approval / rejection. School admins still
   do NOT self-register - the platform owner invites them from the
   Mother Board, as before.
+- **Login / registration revamp** (migration 0011): teachers pick
+  their own classes (and subjects) at registration and can change
+  them later in their workspace - picks count as teaching those
+  classes; teacher logins still need admin approval. The admin's
+  Teachers & Staff list has checkboxes, select-all and bulk actions
+  (suspend, reactivate, revoke, make/remove senior staff, grant an
+  access upgrade) plus filters by status, role/senior, class and
+  search; Students, Parents and Registration & Approvals have
+  filters too. The admin can upload a CSV/Excel file of pupils
+  (downloadable template) - a pupil on the file registers with
+  their student ID, or their name as written, and is straight in
+  with no approval step; the manual new-pupil path still works.
+  Every password field (sign-in, registration, invite accept,
+  reset password) has a show/hide eye toggle.
 - **Absence emails to parents** (migration 0008): when a teacher
   saves a register with a pupil marked Absent (or Late, as a milder
   notice), the portal queues one email notice per linked parent
