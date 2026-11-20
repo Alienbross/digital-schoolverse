@@ -165,3 +165,4 @@ Without env vars the app still builds and runs, but shows a
 
 <!-- Deploy note: sidebar active indicator + hyphen-only UI copy, 2026-11-20 -->
 <!-- Deploy note: admissions fees and uploads, 2026-11-20 -->
+<!-- Deploy note: Add to Home Screen PWA, 2026-11-20 -->
