@@ -275,3 +275,26 @@ export type NotificationRow = {
   is_read: boolean;
   created_at: string;
 };
+
+// ---------------------------------------------------------------- absence emails (migration 0008)
+export type AbsenceEmailRow = {
+  id: string;
+  school_id: string;
+  class_id: string | null;
+  student_id: string;
+  parent_id: string;
+  term_id: string | null;
+  record_date: string;
+  kind: string; // Absent | Late
+  reason: string | null;
+  parent_name: string;
+  parent_email: string | null;
+  pupil_name: string;
+  subject: string;
+  body: string;
+  // 'Queued - no live email provider yet' | 'Unreachable - no email on record' | 'Sent'
+  status: string;
+  sent_at: string | null;
+  provider: string | null;
+  created_at: string;
+};
