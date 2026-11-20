@@ -19,13 +19,13 @@ const ADVANCED_LIVE_IN_MUSE = [
 ];
 
 const ADVANCED_TODO = [
-  "Admission form fees & document uploads",
   "Live Paystack connection (needs Paystack account + keys)",
   "Live SMS / WhatsApp provider (needs provider choice + account)",
 ];
 
 const NOW_LIVE = [
   "Mother Board + role logins - Supabase Auth, profiles & invites, auth-based RLS (migration 0002), Light/Dark theme toggle",
+  "Online Admissions - public apply form (/<slug>/admissions/apply) with admission form fee test checkout (ADM-PAY-…), document uploads (birth certificate, previous result, passport photo, other - private bucket, 5 MB, PDF/JPG/PNG), admin pipeline Submitted - Under review - Assessment - Offered / Rejected / Waitlisted - Enrolled, fee setting in School Setup (migration 0007)",
   "Teacher workspace (/<slug>/teacher) - My Classes, Attendance register, Scores & Results (Test /20, Assignment /10, Exam /70, Nigerian grades, class positions), Lesson Notes, Homework, Timetable, CBT practice-test builder, Messages, Complaints, AI Teacher Assistant (4 drafting tools, drafts only)",
   "Student workspace (/<slug>/student) - My Subjects, Homework, Timetable, My Results + report card, Attendance %, CBT Practice (timed, auto-marked, retakes, never counts as a grade), AI Study Tutor (demo drafts), Help & Complaints with urgent bullying route",
   "Parent workspace (/<slug>/parent) - My Children, per-child attendance / results / homework / timetable, Fees & Receipts with test online checkout, Messages, Complaints 5-step wizard, AI Parent Helper (plain-language progress), Weekly Summaries",
@@ -51,10 +51,9 @@ export default function Plan() {
           <p className="mt-2 text-xs text-slate-400">
             Note: the Basics list above describes the full feature set. The
             Foundation + Admin core is live, and Attendance, Scores, Fees,
-            Complaints, Homework, Messages, CBT and weekly summaries now
-            live in the Teacher / Student / Parent workspaces. A dedicated
-            admin-side Attendance &amp; Scores overview and the Online
-            Admissions pipeline are still to come.
+            Complaints, Homework, Messages, CBT, weekly summaries and the
+            Online Admissions pipeline now live in this build. A dedicated
+            admin-side Attendance &amp; Scores overview is still to come.
           </p>
         </Card>
         <Card>
