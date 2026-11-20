@@ -466,6 +466,9 @@ export default function ParentWorkspace() {
                   <h2 className="font-semibold">{c.student.first_name} {c.student.last_name}</h2>
                   <p className="text-sm text-slate-500">{c.className} · {c.student.admission_no}</p>
                 </div>
+                <Link href={`${base}/students/${c.student.id}/profile`} className="font-semibold text-royal text-sm">
+                  Profile →
+                </Link>
                 <Link href={`${base}/students/${c.student.id}/report-card`} className="font-semibold text-royal text-sm">
                   Report card →
                 </Link>
