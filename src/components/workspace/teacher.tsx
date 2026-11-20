@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { useWorkspaceBase } from "@/lib/slug";
@@ -341,6 +342,16 @@ export default function TeacherWorkspace() {
                   <button className={btnCls} onClick={() => setTab("attendance")}>Take register →</button>
                   <button className="rounded-lg border border-line px-4 py-2 text-sm font-semibold" onClick={() => setTab("scores")}>Enter scores →</button>
                 </div>
+                {pupils.length > 0 && (
+                  <ul className="mt-3 space-y-1 text-sm">
+                    {pupils.map((p) => (
+                      <li key={p.id} className="flex items-center justify-between gap-2 rounded-lg bg-mist px-3 py-1.5">
+                        <span>{p.first_name} {p.last_name}</span>
+                        <Link href={`${base}/students/${p.id}/profile`} className="font-semibold text-royal">Profile →</Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </Card>
             );
           })}
