@@ -16,6 +16,8 @@ import {
 import { btnCls, Card, ConfigBanner, inputCls, labelCls, PageHeader } from "@/components/ui";
 import { LockedNotice } from "@/components/pending-banner";
 import ApprovalsList from "@/components/workspace/approvals";
+import AbsenceNoticesLog from "@/components/workspace/absence-notices";
+import { queueAbsenceNotices } from "@/lib/absence-emails";
 import TimetableView from "@/components/workspace/timetable-view";
 import MessagesPanel from "@/components/workspace/messages-panel";
 import ComplaintWizard from "@/components/workspace/complaint-wizard";
@@ -286,6 +288,7 @@ export default function TeacherWorkspace() {
       {tab === "attendance" && !isPending && (
         <AttendanceSection
           schoolId={schoolId ?? ""}
+          schoolName={schoolName}
           myClasses={myClasses}
           pupilsOf={pupilsOf}
           term={term}
@@ -374,9 +377,10 @@ export default function TeacherWorkspace() {
 // ---------------------------------------------------------------- attendance
 
 function AttendanceSection({
-  schoolId, myClasses, pupilsOf, term, onSaved,
+  schoolId, schoolName, myClasses, pupilsOf, term, onSaved,
 }: {
   schoolId: string;
+  schoolName: string;
   myClasses: ClassRow[];
   pupilsOf: (classId: string) => Student[];
   term: Term | null;
@@ -385,9 +389,13 @@ function AttendanceSection({
   const [classId, setClassId] = useState(myClasses[0]?.id ?? "");
   const [date, setDate] = useState(todayStr());
   const [marks, setMarks] = useState<Record<string, AttendanceStatus>>({});
+  // Optional reason per pupil, asked only for Absent / Late. It is
+  // saved on the register row and copied into the parent email.
+  const [reasons, setReasons] = useState<Record<string, string>>({});
   const [loaded, setLoaded] = useState(false);
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
+  const [logRefresh, setLogRefresh] = useState(0);
   const pupils = pupilsOf(classId);
 
   useEffect(() => {
@@ -396,13 +404,17 @@ function AttendanceSection({
     (async () => {
       const { data } = await supabase
         .from("attendance_records")
-        .select("student_id, status")
+        .select("student_id, status, reason")
         .eq("class_id", classId)
         .eq("record_date", date);
       const map: Record<string, AttendanceStatus> = {};
-      for (const r of (data as { student_id: string; status: string }[] | null) ?? [])
+      const rmap: Record<string, string> = {};
+      for (const r of (data as { student_id: string; status: string; reason: string | null }[] | null) ?? []) {
         map[r.student_id] = r.status as AttendanceStatus;
+        if (r.reason) rmap[r.student_id] = r.reason;
+      }
       setMarks(map);
+      setReasons(rmap);
       setLoaded(true);
     })();
   }, [classId, date]);
@@ -431,20 +443,63 @@ function AttendanceSection({
       term_id: term?.id ?? null,
       record_date: date,
       status: marks[p.id],
+      reason: (reasons[p.id]?.trim() || null) as string | null,
     }));
     const { error } = await supabase
       .from("attendance_records")
       .upsert(rows, { onConflict: "student_id,record_date" });
-    setSaving(false);
     if (error) {
+      setSaving(false);
       setMsg(`Could not save the register: ${error.message}`);
       return;
     }
-    setMsg(`Register saved for ${date} - ${pupils.length} pupils. Saving again updates the same day in place.`);
+    // Register saved. Queue an absence email (Absent) or a milder
+    // late notice (Late) for each linked parent of every pupil
+    // marked so. No real email leaves the portal yet - the rows are
+    // labelled Queued and shown in the portal instead (migration
+    // 0008). Pupils re-marked Present / Excused have their
+    // still-queued notices for this day cleared.
+    const marked = pupils
+      .filter((p) => marks[p.id] === "Absent" || marks[p.id] === "Late")
+      .map((p) => ({
+        student: p,
+        status: marks[p.id] as "Absent" | "Late",
+        reason: reasons[p.id]?.trim() || null,
+      }));
+    const presentStudentIds = pupils
+      .filter((p) => marks[p.id] === "Present" || marks[p.id] === "Excused")
+      .map((p) => p.id);
+    const className = myClasses.find((c) => c.id === classId)?.name ?? "";
+    const queued = await queueAbsenceNotices({
+      schoolId,
+      schoolName,
+      classId,
+      className,
+      termId: term?.id ?? null,
+      recordDate: date,
+      marked,
+      presentStudentIds,
+    });
+    setSaving(false);
+    setLogRefresh((n) => n + 1);
+    let notice = `Register saved for ${date} - ${pupils.length} pupils. Saving again updates the same day in place.`;
+    if (queued.error) {
+      notice += ` The register is saved, but the absence emails could not be queued: ${queued.error}`;
+    } else if (marked.length > 0) {
+      const absent = marked.filter((m) => m.status === "Absent").length;
+      const late = marked.filter((m) => m.status === "Late").length;
+      const parts: string[] = [];
+      if (absent > 0) parts.push(`${absent} absence email${absent === 1 ? "" : "s"} queued`);
+      if (late > 0) parts.push(`${late} late notice${late === 1 ? "" : "s"} queued`);
+      if (queued.unreachable > 0) parts.push(`${queued.unreachable} parent${queued.unreachable === 1 ? " has" : "s have"} no email on record - flagged in the log below`);
+      notice += ` ${parts.join(", ")}. No real email sent yet - no live email provider is connected.`;
+    }
+    setMsg(notice);
     onSaved();
   };
 
   return (
+    <div className="space-y-4">
     <Card>
       <div className="mb-3 flex flex-wrap gap-3">
         <div>
@@ -479,25 +534,44 @@ function AttendanceSection({
           <p className="mb-3 text-sm text-slate-500">{counts.map((c) => `${c.s}: ${c.n}`).join(" · ")} · {pupils.filter((p) => !marks[p.id]).length} unmarked</p>
           <ul className="space-y-2 text-sm">
             {pupils.map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-mist px-3 py-2">
-                <span><strong>{p.first_name} {p.last_name}</strong> <span className="text-xs text-slate-500">{p.admission_no}</span></span>
-                <span className="flex gap-1">
-                  {ATTENDANCE_STATUSES.map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setMarks({ ...marks, [p.id]: s })}
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${marks[p.id] === s ? "bg-royal text-white" : "bg-white text-slate-600 border border-line"}`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </span>
+              <li key={p.id} className="rounded-lg bg-mist px-3 py-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span><strong>{p.first_name} {p.last_name}</strong> <span className="text-xs text-slate-500">{p.admission_no}</span></span>
+                  <span className="flex gap-1">
+                    {ATTENDANCE_STATUSES.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => setMarks({ ...marks, [p.id]: s })}
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${marks[p.id] === s ? "bg-royal text-white" : "bg-white text-slate-600 border border-line"}`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </span>
+                </div>
+                {(marks[p.id] === "Absent" || marks[p.id] === "Late") && (
+                  <input
+                    className={`${inputCls} mt-2`}
+                    value={reasons[p.id] ?? ""}
+                    onChange={(e) => setReasons({ ...reasons, [p.id]: e.target.value })}
+                    placeholder="Reason (optional) - goes into the email to the parent"
+                  />
+                )}
               </li>
             ))}
           </ul>
         </>
       )}
     </Card>
+      <AbsenceNoticesLog
+        schoolId={schoolId}
+        classId={classId || undefined}
+        date={date}
+        mode="staff"
+        title="Absence emails - this class, this day"
+        refreshKey={logRefresh}
+      />
+    </div>
   );
 }
 
