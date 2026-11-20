@@ -39,7 +39,32 @@ export type RegistrationInput = {
   phone: string;
   classId?: string | null;
   pupils?: PupilInput[];
+  /** Student claiming a pre-uploaded record (migration 0011): the
+   *  pupil row the admin's file already created. When set, the
+   *  account is Active at once - no approval step. */
+  studentId?: string | null;
+  /** Classes (and subjects) a teacher picked themself (migration
+   *  0011): [{class_id, subject_id?}]. */
+  classPicks?: { class_id: string; subject_id?: string | null }[];
 };
+
+/** The existing teacher permission set (migration 0011): the
+ *  permissions the admin can grant in bulk from Teachers & Staff.
+ *  Add new entries here when a new teacher permission is added. */
+export const TEACHER_PERMISSIONS = [
+  {
+    id: "approve_parents",
+    label: "Approve parent registrations (senior staff)",
+  },
+] as const;
+
+export type BulkStaffAction =
+  | "suspend"
+  | "reactivate"
+  | "revoke"
+  | "make_senior"
+  | "remove_senior"
+  | "grant_access";
 
 type RpcResult = { ok: boolean; error?: string; [k: string]: unknown };
 
@@ -101,7 +126,8 @@ export async function findPupilsByName(
 
 /** Finish a self-registration for the signed-in user: creates their
  *  teacher / student / parent row and a Pending profile, plus the
- *  proposed pupil links and notifications. */
+ *  proposed pupil links and notifications. A student claiming a
+ *  pre-uploaded record (input.studentId) is Active at once instead. */
 export async function registerSelf(
   input: RegistrationInput,
 ): Promise<RpcResult> {
@@ -113,6 +139,34 @@ export async function registerSelf(
     p_phone: input.phone.trim() || null,
     p_class_id: input.classId ?? null,
     p_pupils: (input.pupils ?? []) as unknown as Record<string, unknown>[],
+    p_student_id: input.studentId ?? null,
+    p_class_picks: (input.classPicks ?? []) as unknown as Record<string, unknown>[],
+  });
+}
+
+/** Replace a teacher's picked classes (their own picks, or the admin
+ *  changing any teacher's picks). Migration 0011. */
+export async function setTeacherClassPicks(
+  teacherId: string,
+  picks: { class_id: string; subject_id?: string | null }[],
+): Promise<RpcResult> {
+  return callRpc("set_teacher_class_picks", {
+    p_teacher_id: teacherId,
+    p_picks: picks as unknown as Record<string, unknown>[],
+  });
+}
+
+/** Apply one bulk action to a set of teachers (admin / owner only).
+ *  Migration 0011. Permission is only used for grant_access. */
+export async function bulkStaffAction(
+  teacherIds: string[],
+  action: BulkStaffAction,
+  permission?: string,
+): Promise<RpcResult> {
+  return callRpc("bulk_staff_action", {
+    p_teacher_ids: teacherIds,
+    p_action: action,
+    p_permission: permission ?? null,
   });
 }
 
