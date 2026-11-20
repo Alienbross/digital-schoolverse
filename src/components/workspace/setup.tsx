@@ -4,6 +4,15 @@ import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth, useCanManage } from "@/lib/auth";
 import { LogoUploadField } from "@/components/school-logo";
+import {
+  DEFAULT_PRIMARY_COLOR,
+  effectivePrimaryColor,
+  extractPrimaryColorFromUrl,
+  isValidHexColor,
+  normalizeHexColor,
+  notifyBrandingChanged,
+  primaryColorLabel,
+} from "@/lib/branding";
 import type { School, Term } from "@/lib/types";
 import {
   btnCls,
@@ -32,6 +41,9 @@ export default function Setup() {
   // Admission form fee (migration 0007).
   const [feeAmount, setFeeAmount] = useState("");
   const [feeRequired, setFeeRequired] = useState(false);
+  // Portal colour (migration 0010): manual pick + hex input.
+  const [pickedColor, setPickedColor] = useState(DEFAULT_PRIMARY_COLOR);
+  const [pickedHex, setPickedHex] = useState(DEFAULT_PRIMARY_COLOR);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -54,6 +66,9 @@ export default function Setup() {
       setLogoUrl(s.logo_url ?? null);
       setFeeAmount(s.admission_fee_amount != null ? String(s.admission_fee_amount) : "");
       setFeeRequired(!!s.admission_fee_required);
+      const current = effectivePrimaryColor(s);
+      setPickedColor(current);
+      setPickedHex(current);
     }
     let termsQuery = supabase.from("terms").select("*").order("created_at", { ascending: true });
     if (schoolId) termsQuery = termsQuery.eq("school_id", schoolId);
@@ -167,6 +182,77 @@ export default function Setup() {
     load();
   };
 
+  // Portal colour (migration 0010): the admin's manual pick, the
+  // logo colour, or the default Royal Blue.
+  const savePickedColor = async () => {
+    if (!school) return;
+    const color = normalizeHexColor(pickedHex) ?? normalizeHexColor(pickedColor);
+    if (!color) {
+      setMsg("Pick a valid colour, e.g. #1D4ED8.");
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase
+      .from("schools")
+      .update({ primary_color: color, primary_color_source: "manual" })
+      .eq("id", school.id);
+    setMsg(
+      error
+        ? `Could not save the colour: ${error.message}`
+        : `Portal colour set to ${color} - it now colours buttons, links and the active menu item.`,
+    );
+    setBusy(false);
+    notifyBrandingChanged();
+    load();
+  };
+
+  const applyLogoColor = async () => {
+    if (!school) return;
+    setBusy(true);
+    // Logos uploaded before migration 0010 have no logo_color saved,
+    // so read the colour from the logo image itself when needed.
+    let color = normalizeHexColor(school.logo_color);
+    if (!color && logoUrl) {
+      color = await extractPrimaryColorFromUrl(logoUrl);
+    }
+    if (!color) {
+      setMsg(
+        "No colour could be read from the logo - upload the logo again or pick a colour below.",
+      );
+      setBusy(false);
+      return;
+    }
+    const { error } = await supabase
+      .from("schools")
+      .update({ primary_color: color, logo_color: color, primary_color_source: "logo" })
+      .eq("id", school.id);
+    setMsg(
+      error
+        ? `Could not save the colour: ${error.message}`
+        : `Portal colour set to the logo colour ${color}.`,
+    );
+    setBusy(false);
+    notifyBrandingChanged();
+    load();
+  };
+
+  const resetDefaultColor = async () => {
+    if (!school) return;
+    setBusy(true);
+    const { error } = await supabase
+      .from("schools")
+      .update({ primary_color: null, primary_color_source: null })
+      .eq("id", school.id);
+    setMsg(
+      error
+        ? `Could not reset the colour: ${error.message}`
+        : "Portal colour reset to the default Royal Blue.",
+    );
+    setBusy(false);
+    notifyBrandingChanged();
+    load();
+  };
+
   return (
     <div>
       <ConfigBanner />
@@ -256,6 +342,88 @@ export default function Setup() {
             <div><label className={labelCls}>Phone</label><input className={inputCls} value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
             <button className={btnCls} disabled={busy || !isSupabaseConfigured || readOnly}>Save school</button>
           </form>
+        </Card>
+        <Card>
+          <h2 className="mb-3 font-semibold">Portal colour</h2>
+          <p className="mb-3 text-sm text-slate-500">
+            The portal colour comes from your logo - it is read
+            automatically when you upload one. You can also pick your own
+            colour here, go back to the logo colour, or reset to the
+            default Royal Blue. It colours buttons, links and the active
+            menu item across the whole portal, and the browser tab colour.
+            The Mother Board always stays Royal Blue.
+          </p>
+          {school ? (
+            <div>
+              <p className="mb-3 flex items-center gap-2 rounded-lg bg-mist px-3 py-2 text-sm">
+                <span
+                  className="inline-block h-6 w-6 shrink-0 rounded-full border border-line"
+                  style={{ backgroundColor: effectivePrimaryColor(school) }}
+                  aria-label={`Current portal colour ${effectivePrimaryColor(school)}`}
+                />
+                <span>
+                  Current: <strong>{effectivePrimaryColor(school)}</strong>{" "}
+                  - {primaryColorLabel(school)}
+                </span>
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="color"
+                  value={normalizeHexColor(pickedHex) ?? DEFAULT_PRIMARY_COLOR}
+                  onChange={(e) => {
+                    setPickedColor(e.target.value);
+                    setPickedHex(e.target.value);
+                  }}
+                  disabled={readOnly}
+                  aria-label="Pick a portal colour"
+                  className="h-10 w-12 cursor-pointer rounded-lg border border-line bg-white"
+                />
+                <input
+                  className={inputCls}
+                  value={pickedHex}
+                  onChange={(e) => setPickedHex(e.target.value)}
+                  placeholder="#1D4ED8"
+                  disabled={readOnly}
+                  aria-label="Portal colour as a hex code"
+                  style={{ maxWidth: 140 }}
+                />
+                <button
+                  type="button"
+                  className={btnCls}
+                  disabled={busy || readOnly || !isValidHexColor(pickedHex)}
+                  onClick={() => void savePickedColor()}
+                >
+                  Save colour
+                </button>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="rounded-lg border border-line px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                  disabled={busy || readOnly || (!school.logo_color && !logoUrl)}
+                  onClick={() => void applyLogoColor()}
+                >
+                  Use logo colour
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border border-line px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                  disabled={busy || readOnly}
+                  onClick={() => void resetDefaultColor()}
+                >
+                  Reset to default Royal Blue
+                </button>
+              </div>
+              {!logoUrl && (
+                <p className="mt-2 text-xs text-slate-400">
+                  No logo uploaded yet - upload one above and its colour is
+                  read automatically.
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">Save the school profile first.</p>
+          )}
         </Card>
         <Card>
           <h2 className="mb-3 font-semibold">Admission form fee</h2>
