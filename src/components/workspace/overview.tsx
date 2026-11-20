@@ -8,6 +8,7 @@ import { useAuth, useCanManage } from "@/lib/auth";
 import { useWorkspaceBase } from "@/lib/slug";
 import { Card, ConfigBanner, PageHeader } from "@/components/ui";
 import AbsenceNoticesLog from "@/components/workspace/absence-notices";
+import { TeacherTaskCounts } from "@/components/workspace/teacher-reminders";
 
 type Counts = {
   schools: number;
@@ -155,6 +156,11 @@ export default function Overview() {
             </p>
           </Card>
         </Link>
+      )}
+      {canManage && schoolId && (
+        <div className="mb-6">
+          <TeacherTaskCounts schoolId={schoolId} />
+        </div>
       )}
       {canManage && schoolId && (
         <div className="mb-6">
