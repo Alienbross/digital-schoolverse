@@ -1,4 +1,8 @@
 import { supabase } from "@/lib/supabase";
+import {
+  extractPrimaryColorFromFile,
+  notifyBrandingChanged,
+} from "@/lib/branding";
 
 /** School logos live in Supabase Storage, one file per school:
  *  `school-logos/<school_id>/logo.<ext>`. The public URL is saved in
@@ -18,6 +22,9 @@ export type SchoolBranding = {
   name: string;
   motto: string | null;
   logo_url: string | null;
+  // Portal primary colour (migration 0010). Null = default Royal Blue.
+  primary_color?: string | null;
+  logo_color?: string | null;
 };
 
 /** Human-readable reason a file cannot be used as a logo, or null if OK. */
@@ -31,13 +38,22 @@ export function validateLogoFile(file: File): string | null {
   return null;
 }
 
-/** Upload (or replace) a school's logo. Returns the public URL on success. */
+/** Upload (or replace) a school's logo. Returns the public URL on success.
+ *  The logo's dominant colour is read from the file first (client-side
+ *  canvas sampling): it is saved as logo_color, and - unless the admin
+ *  has set a manual colour - also becomes the portal primary colour.
+ *  When no colour can be read, the portal keeps Royal Blue and the
+ *  returned note says so. */
 export async function uploadSchoolLogo(
   schoolId: string,
   file: File,
-): Promise<{ url?: string; error?: string }> {
+): Promise<{ url?: string; error?: string; color?: string | null; colorNote?: string }> {
   const problem = validateLogoFile(file);
   if (problem) return { error: problem };
+
+  // Read the colour from the file before uploading. A failure here is
+  // not fatal - the logo still uploads, it just keeps Royal Blue.
+  const extracted = await extractPrimaryColorFromFile(file);
 
   const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
   const path = `${schoolId}/logo.${ext}`;
@@ -63,16 +79,61 @@ export async function uploadSchoolLogo(
     data: { publicUrl },
   } = supabase.storage.from(LOGO_BUCKET).getPublicUrl(path);
 
+  // A manual portal colour is never overwritten by a logo upload.
+  const { data: current } = await supabase
+    .from("schools")
+    .select("primary_color_source")
+    .eq("id", schoolId)
+    .maybeSingle();
+  const manual = (current as { primary_color_source?: string | null } | null)
+    ?.primary_color_source === "manual";
+
+  const colourUpdate =
+    extracted && !manual
+      ? { logo_color: extracted, primary_color: extracted, primary_color_source: "logo" }
+      : extracted
+        ? { logo_color: extracted }
+        : !manual
+          ? { logo_color: null, primary_color: null, primary_color_source: null }
+          : { logo_color: null };
   const { error: saveError } = await supabase
     .from("schools")
-    .update({ logo_url: publicUrl })
+    .update({ logo_url: publicUrl, ...colourUpdate })
     .eq("id", schoolId);
-  if (saveError) return { error: `Logo uploaded but could not be saved: ${saveError.message}` };
+  if (saveError) {
+    // Migration 0010 not run yet (the colour columns do not exist):
+    // the logo itself must still save, just without its colour.
+    const { error: retryError } = await supabase
+      .from("schools")
+      .update({ logo_url: publicUrl })
+      .eq("id", schoolId);
+    if (retryError) {
+      return { error: `Logo uploaded but could not be saved: ${saveError.message}` };
+    }
+    notifyBrandingChanged();
+    return {
+      url: publicUrl,
+      color: null,
+      colorNote:
+        "Logo saved, but its colour could not be saved yet - the portal keeps Royal Blue.",
+    };
+  }
 
-  return { url: publicUrl };
+  notifyBrandingChanged();
+  return {
+    url: publicUrl,
+    color: extracted,
+    colorNote: extracted
+      ? manual
+        ? "Logo saved - the portal keeps your chosen colour."
+        : `Logo saved - the portal now uses ${extracted} from your logo.`
+      : "Logo saved - no clear colour could be read from it, so the portal keeps Royal Blue.",
+  };
 }
 
-/** Delete a school's logo file and clear `schools.logo_url`. */
+/** Delete a school's logo file and clear `schools.logo_url`. A logo
+ *  colour is cleared too, and a logo-derived portal colour falls back
+ *  to Royal Blue; a manual colour is kept. */
 export async function removeSchoolLogo(
   schoolId: string,
 ): Promise<{ error?: string }> {
@@ -86,11 +147,30 @@ export async function removeSchoolLogo(
     const { error } = await supabase.storage.from(LOGO_BUCKET).remove(paths);
     if (error) return { error: `Could not delete logo file: ${error.message}` };
   }
+  const { data: current } = await supabase
+    .from("schools")
+    .select("primary_color_source")
+    .eq("id", schoolId)
+    .maybeSingle();
+  const manual = (current as { primary_color_source?: string | null } | null)
+    ?.primary_color_source === "manual";
   const { error } = await supabase
     .from("schools")
-    .update({ logo_url: null })
+    .update(
+      manual
+        ? { logo_url: null, logo_color: null }
+        : { logo_url: null, logo_color: null, primary_color: null, primary_color_source: null },
+    )
     .eq("id", schoolId);
-  if (error) return { error: `Could not clear logo: ${error.message}` };
+  if (error) {
+    // Migration 0010 not run yet: still clear the logo itself.
+    const { error: retryError } = await supabase
+      .from("schools")
+      .update({ logo_url: null })
+      .eq("id", schoolId);
+    if (retryError) return { error: `Could not clear logo: ${error.message}` };
+  }
+  notifyBrandingChanged();
   return {};
 }
 
