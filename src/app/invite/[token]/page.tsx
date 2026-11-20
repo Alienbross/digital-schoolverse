@@ -7,6 +7,7 @@ import { PENDING_INVITE_KEY, useAuth } from "@/lib/auth";
 import { completeInvite, fetchInvite } from "@/lib/invites";
 import { fetchSchoolBranding, type SchoolBranding } from "@/lib/logo";
 import { SchoolLogo } from "@/components/school-logo";
+import PasswordInput from "@/components/password-input";
 import type { SchoolInvite } from "@/lib/types";
 import { btnCls, Card, inputCls, labelCls, PageHeader } from "@/components/ui";
 
@@ -183,23 +184,11 @@ export default function AcceptInvite({ schoolSlug }: { schoolSlug?: string }) {
             </div>
             <div>
               <label className={labelCls}>Choose a password</label>
-              <input
-                className={inputCls}
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="new-password"
-              />
+              <PasswordInput value={password} onChange={setPassword} autoComplete="new-password" />
             </div>
             <div>
               <label className={labelCls}>Repeat password</label>
-              <input
-                className={inputCls}
-                type="password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                autoComplete="new-password"
-              />
+              <PasswordInput value={confirm} onChange={setConfirm} autoComplete="new-password" />
             </div>
             <p className="text-xs text-slate-400">
               Invite expires{" "}
