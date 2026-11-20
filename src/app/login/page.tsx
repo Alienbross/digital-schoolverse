@@ -14,6 +14,7 @@ import {
 import { fetchSchoolBranding, type SchoolBranding } from "@/lib/logo";
 import { fetchSchoolBySlug } from "@/lib/slug";
 import { SchoolLogo } from "@/components/school-logo";
+import PasswordInput from "@/components/password-input";
 import { btnCls, Card, ConfigBanner, inputCls, labelCls, PageHeader } from "@/components/ui";
 
 /** Sign in. On a school path (/<slug>/login) the school's logo shows
@@ -200,11 +201,9 @@ export default function Login({ schoolSlug }: { schoolSlug?: string }) {
             </div>
             <div>
               <label className={labelCls}>Password</label>
-              <input
-                className={inputCls}
-                type="password"
+              <PasswordInput
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={setPassword}
                 placeholder="Your password"
                 autoComplete="current-password"
               />
