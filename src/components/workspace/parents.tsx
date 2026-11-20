@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth, useCanManage } from "@/lib/auth";
-import type { Parent, ParentChild, School, Student } from "@/lib/types";
+import type { ClassRow, Parent, ParentChild, School, Student } from "@/lib/types";
 import {
   btnCls,
   Card,
@@ -29,6 +29,9 @@ export default function Parents() {
   const [linkStudent, setLinkStudent] = useState("");
   const [relationship, setRelationship] = useState("Mother");
   const [msg, setMsg] = useState("");
+  const [search, setSearch] = useState("");
+  const [childClassFilter, setChildClassFilter] = useState("");
+  const [classes, setClasses] = useState<ClassRow[]>([]);
 
   const load = async () => {
     const { data: s } = schoolId
@@ -45,6 +48,8 @@ export default function Parents() {
       ? await supabase.from("parent_children").select("*").in("parent_id", parentIds)
       : { data: [] as ParentChild[] };
     setLinks(l ?? []);
+    const { data: c } = await supabase.from("classes").select("*").eq("school_id", s.id).order("name");
+    setClasses(c ?? []);
   };
 
   useEffect(() => {
@@ -90,6 +95,22 @@ export default function Parents() {
         return s ? `${s.first_name} ${s.last_name} (${l.relationship ?? "Parent"})` : null;
       })
       .filter(Boolean);
+
+  const filteredParents = parents.filter((p) => {
+    const q = search.trim().toLowerCase();
+    if (q) {
+      const hay = `${p.first_name} ${p.last_name} ${p.phone ?? ""} ${p.email ?? ""} ${childrenOf(p.id).join(" ")}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (childClassFilter) {
+      const childIds = links.filter((l) => l.parent_id === p.id).map((l) => l.student_id);
+      const hasChildInClass = students.some(
+        (s) => childIds.includes(s.id) && s.class_id === childClassFilter,
+      );
+      if (!hasChildInClass) return false;
+    }
+    return true;
+  });
 
   return (
     <div>
@@ -137,9 +158,16 @@ export default function Parents() {
           </Card>
         </div>
         <Card>
-          <h2 className="mb-3 font-semibold">Parents ({parents.length})</h2>
+          <h2 className="mb-3 font-semibold">Parents ({filteredParents.length} of {parents.length})</h2>
+          <div className="mb-3 grid gap-2 md:grid-cols-2">
+            <input className={inputCls} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, phone, email or child…" />
+            <select className={inputCls} value={childClassFilter} onChange={(e) => setChildClassFilter(e.target.value)}>
+              <option value="">All classes (child)</option>
+              {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
           <ul className="space-y-2 text-sm">
-            {parents.map((p) => (
+            {filteredParents.map((p) => (
               <li key={p.id} className="rounded-lg bg-mist px-3 py-2">
                 <strong>{p.first_name} {p.last_name}</strong> · {p.phone ?? "no phone"}
                 <span className="block text-xs text-slate-500">
@@ -147,7 +175,7 @@ export default function Parents() {
                 </span>
               </li>
             ))}
-            {parents.length === 0 && <li className="text-slate-400">No parents yet.</li>}
+            {filteredParents.length === 0 && <li className="text-slate-400">No parents match these filters.</li>}
           </ul>
         </Card>
       </div>
