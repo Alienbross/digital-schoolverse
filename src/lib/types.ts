@@ -276,6 +276,18 @@ export type NotificationRow = {
   created_at: string;
 };
 
+// ---------------------------------------------------------------- student profiles (migration 0009)
+export type StudentProfileShare = {
+  id: string;
+  school_id: string;
+  student_id: string;
+  term_id: string | null;
+  shared_by: string | null;
+  summary_text: string;
+  shared_at: string;
+  created_at: string;
+};
+
 // ---------------------------------------------------------------- absence emails (migration 0008)
 export type AbsenceEmailRow = {
   id: string;
