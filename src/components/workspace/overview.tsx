@@ -7,6 +7,7 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth, useCanManage } from "@/lib/auth";
 import { useWorkspaceBase } from "@/lib/slug";
 import { Card, ConfigBanner, PageHeader } from "@/components/ui";
+import AbsenceNoticesLog from "@/components/workspace/absence-notices";
 
 type Counts = {
   schools: number;
@@ -154,6 +155,16 @@ export default function Overview() {
             </p>
           </Card>
         </Link>
+      )}
+      {canManage && schoolId && (
+        <div className="mb-6">
+          <AbsenceNoticesLog
+            schoolId={schoolId}
+            mode="staff"
+            title="Absence emails - all classes"
+            showDatePicker
+          />
+        </div>
       )}
       <Card>
         <h2 className="mb-3 text-lg font-semibold">
