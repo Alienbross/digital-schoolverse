@@ -21,6 +21,7 @@ const ADVANCED_LIVE_IN_MUSE = [
 const ADVANCED_TODO = [
   "Live Paystack connection (needs Paystack account + keys)",
   "Live SMS / WhatsApp provider (needs provider choice + account)",
+  "Live email provider for absence emails (Resend or SendGrid - needs provider choice + account; the sendAbsenceEmail plug-in point in src/lib/absence-emails.ts is ready)",
 ];
 
 const NOW_LIVE = [
@@ -29,6 +30,7 @@ const NOW_LIVE = [
   "Teacher workspace (/<slug>/teacher) - My Classes, Attendance register, Scores & Results (Test /20, Assignment /10, Exam /70, Nigerian grades, class positions), Lesson Notes, Homework, Timetable, CBT practice-test builder, Messages, Complaints, AI Teacher Assistant (4 drafting tools, drafts only)",
   "Student workspace (/<slug>/student) - My Subjects, Homework, Timetable, My Results + report card, Attendance %, CBT Practice (timed, auto-marked, retakes, never counts as a grade), AI Study Tutor (demo drafts), Help & Complaints with urgent bullying route",
   "Parent workspace (/<slug>/parent) - My Children, per-child attendance / results / homework / timetable, Fees & Receipts with test online checkout, Messages, Complaints 5-step wizard, AI Parent Helper (plain-language progress), Weekly Summaries",
+  "Absence emails to parents - when a teacher marks a pupil Absent (or Late, as a milder notice) the parent gets a queued email notice in the portal (migration 0008); no live email provider is connected yet, so notices are labelled Queued - no live email provider yet and parents with no email on record are flagged Unreachable in the log",
   "Role routing - after sign-in each role lands in its own workspace; scoped write access for the three roles (migration 0005)",
 ];
 
