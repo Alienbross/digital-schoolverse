@@ -29,6 +29,9 @@ export default function Setup() {
   const [phone, setPhone] = useState("");
   const [session, setSession] = useState("2026/2027");
   const [termName, setTermName] = useState("First Term");
+  // Admission form fee (migration 0007).
+  const [feeAmount, setFeeAmount] = useState("");
+  const [feeRequired, setFeeRequired] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -49,6 +52,8 @@ export default function Setup() {
       setEmail(s.email ?? "");
       setPhone(s.phone ?? "");
       setLogoUrl(s.logo_url ?? null);
+      setFeeAmount(s.admission_fee_amount != null ? String(s.admission_fee_amount) : "");
+      setFeeRequired(!!s.admission_fee_required);
     }
     let termsQuery = supabase.from("terms").select("*").order("created_at", { ascending: true });
     if (schoolId) termsQuery = termsQuery.eq("school_id", schoolId);
@@ -130,6 +135,34 @@ export default function Setup() {
       .update({ reg_teacher_open: true, reg_student_open: true, reg_parent_open: true })
       .eq("id", school.id);
     setMsg(error ? `Could not change: ${error.message}` : "All three registration phases opened.");
+    setBusy(false);
+    load();
+  };
+
+  // Admission form fee (migration 0007): amount in naira + on/off.
+  const saveFee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!school) return;
+    const amount = Number(feeAmount);
+    if (feeRequired && (!Number.isFinite(amount) || amount <= 0)) {
+      setMsg("Enter a fee above ₦0, or switch the fee off for free applications.");
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase
+      .from("schools")
+      .update({
+        admission_fee_amount: feeRequired ? amount : 0,
+        admission_fee_required: feeRequired,
+      })
+      .eq("id", school.id);
+    setMsg(
+      error
+        ? `Could not save the fee: ${error.message}`
+        : feeRequired
+          ? `Admission form fee set - ₦${amount.toLocaleString()} per application (test checkout).`
+          : "Admission form fee switched off - applications are free.",
+    );
     setBusy(false);
     load();
   };
@@ -223,6 +256,53 @@ export default function Setup() {
             <div><label className={labelCls}>Phone</label><input className={inputCls} value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
             <button className={btnCls} disabled={busy || !isSupabaseConfigured || readOnly}>Save school</button>
           </form>
+        </Card>
+        <Card>
+          <h2 className="mb-3 font-semibold">Admission form fee</h2>
+          <p className="mb-3 text-sm text-slate-500">
+            What applicants pay for the admission form, at{" "}
+            <span className="font-semibold text-ink">
+              /{school?.slug ?? "your-school"}/admissions/apply
+            </span>
+            . The checkout there is a test checkout - no real money moves.
+          </p>
+          {school ? (
+            <div>
+              <p className="mb-3 rounded-lg bg-mist px-3 py-2 text-sm">
+                Current setting:{" "}
+                <strong>
+                  {school.admission_fee_required && Number(school.admission_fee_amount ?? 0) > 0
+                    ? `Fee on - ₦${Number(school.admission_fee_amount).toLocaleString()} per application`
+                    : "Fee off - applications are free"}
+                </strong>
+              </p>
+              <form onSubmit={saveFee} className="space-y-3">
+                <div>
+                  <label className={labelCls}>Fee amount (₦)</label>
+                  <input
+                    className={inputCls}
+                    value={feeAmount}
+                    inputMode="numeric"
+                    onChange={(e) => setFeeAmount(e.target.value)}
+                    placeholder="e.g. 5000"
+                    disabled={readOnly || !feeRequired}
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={feeRequired}
+                    onChange={(e) => setFeeRequired(e.target.checked)}
+                    disabled={readOnly}
+                  />
+                  Charge an admission form fee
+                </label>
+                <button className={btnCls} disabled={busy || readOnly}>Save fee setting</button>
+              </form>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">Save the school profile first.</p>
+          )}
         </Card>
         <Card>
           <h2 className="mb-3 font-semibold">Sessions &amp; terms</h2>
