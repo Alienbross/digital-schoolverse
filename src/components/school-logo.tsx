@@ -66,7 +66,10 @@ export function LogoUploadField({
     const res = await uploadSchoolLogo(schoolId, file);
     if (res.url) {
       setPreview(res.url);
-      setMsg("Logo saved - it now shows on the portal and report cards.");
+      setMsg(
+        res.colorNote ??
+          "Logo saved - it now shows on the portal and report cards.",
+      );
       onChanged(res.url);
     } else {
       setMsg(res.error ?? "Could not upload logo.");
@@ -127,7 +130,10 @@ export function LogoUploadField({
         <p className="mt-1 text-xs text-slate-500">
           PNG, JPG or WebP, up to 2 MB. This logo appears on the school
           portal header for every user of the school, on the sign-in page,
-          and at the top of student report cards.
+          and at the top of student report cards. Its main colour becomes
+          the portal colour, and the tab icon and home-screen icon become
+          this logo. A colour you pick below is never overwritten by a
+          logo upload.
         </p>
         {msg && <p className="mt-1 text-xs font-medium text-royal">{msg}</p>}
       </div>
