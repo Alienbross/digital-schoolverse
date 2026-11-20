@@ -162,3 +162,5 @@ Without env vars the app still builds and runs, but shows a
 - Proper live: **~$45/month** (Vercel Pro $20 + Supabase Pro $25) + domain
   ~₦15,000/year. Paystack only takes a cut per payment (1.5% + ₦100,
   capped at ₦2,000, local).
+
+<!-- Deploy note: sidebar active indicator + hyphen-only UI copy, 2026-11-20 -->
