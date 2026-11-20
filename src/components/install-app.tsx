@@ -160,8 +160,8 @@ function InstallSteps({ ios, onClose }: { ios: boolean; onClose: () => void }) {
               Scroll down and tap <strong>Add to Home Screen</strong>.
             </li>
             <li>
-              Tap <strong>Add</strong> at the top right. The blue DS icon
-              appears on your home screen.
+              Tap <strong>Add</strong> at the top right. Your school&apos;s
+              icon appears on your home screen.
             </li>
           </ol>
         ) : (
@@ -177,8 +177,8 @@ function InstallSteps({ ios, onClose }: { ios: boolean; onClose: () => void }) {
               <strong>Install app</strong>).
             </li>
             <li>
-              Tap <strong>Install</strong> or <strong>Add</strong>. The blue
-              DS icon appears on your home screen.
+              Tap <strong>Install</strong> or <strong>Add</strong>. Your
+              school&apos;s icon appears on your home screen.
             </li>
           </ol>
         )}
