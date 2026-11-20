@@ -5,7 +5,7 @@ import Link from "next/link";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { useWorkspaceBase } from "@/lib/slug";
-import type { ClassRow, ClassSubject, Student, Subject, Teacher, Term } from "@/lib/types";
+import type { ClassRow, ClassSubject, Student, Subject, Teacher, TeacherClassPick, Term } from "@/lib/types";
 import { gradeFor } from "@/components/report-card";
 import {
   ATTENDANCE_STATUSES,
@@ -19,6 +19,7 @@ import { LockedNotice } from "@/components/pending-banner";
 import ApprovalsList from "@/components/workspace/approvals";
 import AbsenceNoticesLog from "@/components/workspace/absence-notices";
 import { queueAbsenceNotices } from "@/lib/absence-emails";
+import { setTeacherClassPicks } from "@/lib/registration";
 import { RemindersList } from "@/components/workspace/teacher-reminders";
 import {
   countNeedingAttentionToday,
@@ -85,6 +86,12 @@ export default function TeacherWorkspace() {
   const [students, setStudents] = useState<Student[]>([]);
   const [term, setTerm] = useState<Term | null>(null);
   const [msg, setMsg] = useState("");
+  // Classes (and subjects) this teacher picked themself at
+  // registration (migration 0011) - they count as classes taught.
+  const [myPicks, setMyPicks] = useState<TeacherClassPick[]>([]);
+  const [showPickEditor, setShowPickEditor] = useState(false);
+  const [editPickedClasses, setEditPickedClasses] = useState<string[]>([]);
+  const [editPickedSubjects, setEditPickedSubjects] = useState<Record<string, string[]>>({});
   // Teacher reminders (step 3): computed from live data, read-only.
   const [reminders, setReminders] = useState<TeacherReminder[]>([]);
   const [remindersLoaded, setRemindersLoaded] = useState(false);
@@ -114,6 +121,8 @@ export default function TeacherWorkspace() {
     setSubjects((sub as Subject[] | null) ?? []);
     const { data: cs } = await supabase.from("class_subjects").select("*");
     setClassSubjects((cs as ClassSubject[] | null) ?? []);
+    const { data: pk } = await supabase.from("teacher_class_picks").select("*").eq("school_id", schoolId);
+    setMyPicks((pk as TeacherClassPick[] | null) ?? []);
     const { data: st } = await supabase.from("students").select("*").eq("school_id", schoolId).order("last_name");
     setStudents((st as Student[] | null) ?? []);
     setTerm(await fetchCurrentTerm(schoolId));
@@ -178,20 +187,53 @@ export default function TeacherWorkspace() {
   };
 
   // Classes I teach: subjects assigned to me, plus classes where I am
-  // the class teacher.
+  // the class teacher, plus the classes I picked myself.
   const myClassIds = useMemo(() => {
     if (!teacherId) return [];
     const ids = new Set<string>();
     for (const cs of classSubjects) if (cs.teacher_id === teacherId) ids.add(cs.class_id);
     for (const c of classes) if (c.class_teacher_id === teacherId) ids.add(c.id);
+    for (const pk of myPicks) if (pk.teacher_id === teacherId) ids.add(pk.class_id);
     return [...ids];
-  }, [teacherId, classSubjects, classes]);
+  }, [teacherId, classSubjects, classes, myPicks]);
 
   const myClasses = classes.filter((c) => myClassIds.includes(c.id));
   const mySubjectIds = useMemo(() => {
     if (!teacherId) return new Set<string>();
-    return new Set(classSubjects.filter((cs) => cs.teacher_id === teacherId).map((cs) => cs.subject_id));
-  }, [teacherId, classSubjects]);
+    const ids = new Set(classSubjects.filter((cs) => cs.teacher_id === teacherId).map((cs) => cs.subject_id));
+    for (const pk of myPicks) if (pk.teacher_id === teacherId && pk.subject_id) ids.add(pk.subject_id);
+    return ids;
+  }, [teacherId, classSubjects, myPicks]);
+
+  // Change the classes I teach: replaces my picks (migration 0011).
+  const openPickEditor = () => {
+    const mine = myPicks.filter((p) => p.teacher_id === teacherId);
+    setEditPickedClasses([...new Set(mine.map((p) => p.class_id))]);
+    const subs: Record<string, string[]> = {};
+    for (const p of mine) {
+      if (p.subject_id) subs[p.class_id] = [...(subs[p.class_id] ?? []), p.subject_id];
+    }
+    setEditPickedSubjects(subs);
+    setShowPickEditor(true);
+  };
+
+  const savePicks = async () => {
+    if (!teacherId) return;
+    const picks: { class_id: string; subject_id: string | null }[] = editPickedClasses.flatMap((cId) => {
+      const subs = editPickedSubjects[cId] ?? [];
+      return subs.length > 0
+        ? subs.map((sId) => ({ class_id: cId, subject_id: sId as string | null }))
+        : [{ class_id: cId, subject_id: null as string | null }];
+    });
+    const res = await setTeacherClassPicks(teacherId, picks);
+    if (!res.ok) {
+      setMsg(res.error ?? "Could not save your classes.");
+      return;
+    }
+    setMsg("Your classes are saved.");
+    setShowPickEditor(false);
+    loadBase();
+  };
 
   const subjectsOf = (classId: string) =>
     classSubjects
@@ -310,9 +352,8 @@ export default function TeacherWorkspace() {
             <Card>
               <h2 className="mb-1 font-semibold">My profile</h2>
               <p className="mb-3 text-sm text-slate-500">
-                Complete your details while you wait for approval. The school
-                admin assigns your subjects and classes - those show below
-                once assigned.
+                Complete your details while you wait for approval. Pick the
+                classes you teach below - those show here once saved.
               </p>
               <form onSubmit={saveMyDetails} className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
@@ -326,7 +367,7 @@ export default function TeacherWorkspace() {
           )}
           <div className="grid gap-4 md:grid-cols-2">
           {myClasses.length === 0 && (
-            <Card><p className="text-sm text-slate-500">No classes assigned to you yet. The school admin assigns subjects and class teachers under Classes &amp; Arms and Subjects.</p></Card>
+            <Card><p className="text-sm text-slate-500">No classes assigned to you yet. Pick the classes you teach below, or ask the school admin to assign subjects and class teachers under Classes &amp; Arms and Subjects.</p></Card>
           )}
           {myClasses.map((c) => {
             const subs = subjectsOf(c.id);
@@ -356,6 +397,74 @@ export default function TeacherWorkspace() {
             );
           })}
           </div>
+          {!isPreview && (
+            <Card>
+              <h2 className="font-semibold">Classes I teach</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Pick the classes you teach yourself - and the subjects in
+                each class. A picked class opens its register, scores and
+                homework to you once your account is approved.
+              </p>
+              {!showPickEditor ? (
+                <button className="mt-3 rounded-lg border border-line px-4 py-2 text-sm font-semibold" onClick={openPickEditor}>
+                  Change the classes I teach
+                </button>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {classes.map((c) => {
+                    const subs = subjectsOf(c.id);
+                    const checked = editPickedClasses.includes(c.id);
+                    return (
+                      <div key={c.id} className="rounded-lg bg-mist px-3 py-2">
+                        <label className="flex items-center gap-2 text-sm font-semibold">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() =>
+                              setEditPickedClasses((prev) =>
+                                prev.includes(c.id) ? prev.filter((x) => x !== c.id) : [...prev, c.id],
+                              )
+                            }
+                          />
+                          {c.name}
+                          {c.arm ? ` · Arm ${c.arm}` : ""}
+                        </label>
+                        {checked && subs.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2 pl-6">
+                            {subs.map((s) => (
+                              <label key={s.id} className="flex items-center gap-1 rounded-full border border-line bg-white px-2 py-1 text-xs font-semibold text-slate-600">
+                                <input
+                                  type="checkbox"
+                                  checked={(editPickedSubjects[c.id] ?? []).includes(s.id)}
+                                  onChange={() =>
+                                    setEditPickedSubjects((prev) => {
+                                      const current = prev[c.id] ?? [];
+                                      const next = current.includes(s.id)
+                                        ? current.filter((x) => x !== s.id)
+                                        : [...current, s.id];
+                                      return { ...prev, [c.id]: next };
+                                    })
+                                  }
+                                />
+                                {s.name}
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {classes.length === 0 && (
+                    <p className="text-sm text-slate-500">No classes yet - the school admin creates them first.</p>
+                  )}
+                  <div className="flex gap-2 pt-1">
+                    <button className={btnCls} onClick={() => void savePicks()}>Save my classes</button>
+                    <button className="rounded-lg border border-line px-4 py-2 text-sm font-semibold" onClick={() => setShowPickEditor(false)}>Cancel</button>
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
         </div>
       )}
 
