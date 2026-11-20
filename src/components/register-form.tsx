@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { SchoolLogo } from "@/components/school-logo";
+import PasswordInput from "@/components/password-input";
 import { btnCls, Card, ConfigBanner, inputCls, labelCls, PageHeader } from "@/components/ui";
 import {
   PENDING_REGISTRATION_KEY,
@@ -25,9 +26,9 @@ const ROLE_LABEL: Record<RegisterRole, string> = {
 
 const ROLE_BLURB: Record<RegisterRole, string> = {
   teacher:
-    "Teachers register first. Your account waits for the school admin to approve it - then you can take registers, enter scores and use the teacher workspace.",
+    "Teachers register first. Pick the classes you teach below - and the subjects in each class. Your account waits for the school admin to approve it - then you can take registers, enter scores and use the teacher workspace.",
   student:
-    "Students register after teachers. Pick your class, and your account waits for your class teacher or the school admin to approve it.",
+    "Students register after teachers. If the school already has your record, enter your student ID (or your name as written) and you are straight in - no approval wait. If you are not in the school list yet, register as a new pupil instead.",
   parent:
     "Parents register last, once pupils are in. Add your child or children below - by admission number, or by name and class - and your account waits for the school admin (or senior staff) to approve it.",
 };
@@ -36,7 +37,9 @@ const ROLE_BLURB: Record<RegisterRole, string> = {
  *  /<slug>/register/teacher, /<slug>/register/student,
  *  /<slug>/register/parent. No invite link needed. The account is
  *  created via Supabase Auth with a Pending profile for that school
- *  (migration 0006); approval unlocks the workspace. */
+ *  (migration 0006); approval unlocks the workspace. The exception
+ *  is a student who matches a record the admin already uploaded
+ *  (migration 0011): that account is Active at once, no approval. */
 export default function RegisterForm({
   slug,
   role,
@@ -61,9 +64,22 @@ export default function RegisterForm({
   const [pupilLast, setPupilLast] = useState("");
   const [pupilClass, setPupilClass] = useState("");
   const [relationship, setRelationship] = useState("Parent");
+  // Teacher class picking (migration 0011): classes the teacher
+  // teaches, and the subjects they teach in each picked class.
+  const [pickedClasses, setPickedClasses] = useState<string[]>([]);
+  const [pickedSubjects, setPickedSubjects] = useState<Record<string, string[]>>({});
+  // Student lookup (migration 0011): match the pre-uploaded record
+  // by student ID, or by name as written; manual = not in the file.
+  const [studentMode, setStudentMode] = useState<"id" | "name" | "manual">("id");
+  const [studentIdInput, setStudentIdInput] = useState("");
+  const [studentFirst, setStudentFirst] = useState("");
+  const [studentLast, setStudentLast] = useState("");
+  const [studentClass, setStudentClass] = useState("");
+  const [matchedPupil, setMatchedPupil] = useState<PupilMatch | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [done, setDone] = useState(false);
+  const [preVerified, setPreVerified] = useState(false);
   const [admissionNoOut, setAdmissionNoOut] = useState("");
 
   useEffect(() => {
@@ -83,6 +99,27 @@ export default function RegisterForm({
 
   const phaseOpen = status?.phases[role] ?? false;
 
+  const subjectsOfClass = (classIdValue: string) =>
+    (status?.class_subjects ?? []).filter((cs) => cs.class_id === classIdValue);
+
+  const togglePickedClass = (classIdValue: string) => {
+    setPickedClasses((prev) =>
+      prev.includes(classIdValue)
+        ? prev.filter((c) => c !== classIdValue)
+        : [...prev, classIdValue],
+    );
+  };
+
+  const togglePickedSubject = (classIdValue: string, subjectId: string) => {
+    setPickedSubjects((prev) => {
+      const current = prev[classIdValue] ?? [];
+      const next = current.includes(subjectId)
+        ? current.filter((s) => s !== subjectId)
+        : [...current, subjectId];
+      return { ...prev, [classIdValue]: next };
+    });
+  };
+
   const addPupilByAdmission = async () => {
     if (!status || !admissionNo.trim()) return;
     setBusy(true);
@@ -95,7 +132,7 @@ export default function RegisterForm({
     }
     if (!pupil) {
       setMsg(
-        `No pupil with admission number “${admissionNo.trim()}” in ${status.school.name}. Check the number - it looks like DSV/2026/0001.`,
+        `No pupil with admission number "${admissionNo.trim()}" in ${status.school.name}. Check the number - it looks like DSV/2026/0001.`,
       );
       return;
     }
@@ -119,13 +156,13 @@ export default function RegisterForm({
     }
     if (found.length === 0) {
       setMsg(
-        `No pupil called “${pupilFirst.trim()} ${pupilLast.trim()}”${pupilClass ? " in that class" : ""} in ${status.school.name}. Check the spelling, or use the admission number.`,
+        `No pupil called "${pupilFirst.trim()} ${pupilLast.trim()}"${pupilClass ? " in that class" : ""} in ${status.school.name}. Check the spelling, or use the admission number.`,
       );
       return;
     }
     if (found.length > 1) {
       setMsg(
-        `More than one pupil is called “${pupilFirst.trim()} ${pupilLast.trim()}”. Use the admission number to pick the right one.`,
+        `More than one pupil is called "${pupilFirst.trim()} ${pupilLast.trim()}". Use the admission number to pick the right one.`,
       );
       return;
     }
@@ -156,6 +193,74 @@ export default function RegisterForm({
     setMsg(`${pupil.first_name} ${pupil.last_name} added - the school will check this link before approval.`);
   };
 
+  // Student lookup: find the pre-uploaded record and show the name
+  // and class from the file, so the student only sets a password.
+  const lookupStudentById = async () => {
+    if (!status || !studentIdInput.trim()) return;
+    setBusy(true);
+    setMsg("");
+    const { pupil, error } = await findPupilByAdmission(status.school.id, studentIdInput);
+    setBusy(false);
+    if (error) {
+      setMsg(`Could not look up that student ID: ${error}`);
+      return;
+    }
+    if (!pupil) {
+      setMsg(
+        `No pupil with student ID "${studentIdInput.trim()}" in ${status.school.name}. Check the ID - it looks like DSV/2026/0001 - or register as a new pupil below.`,
+      );
+      return;
+    }
+    setMatchedPupil(pupil);
+    setFirstName(pupil.first_name);
+    setLastName(pupil.last_name);
+    setMsg(`Found you: ${pupil.first_name} ${pupil.last_name}${pupil.class_name ? ` · ${pupil.class_name}` : ""}. Check it is you, then set your password below.`);
+  };
+
+  const lookupStudentByName = async () => {
+    if (!status || !studentFirst.trim() || !studentLast.trim()) return;
+    setBusy(true);
+    setMsg("");
+    const { pupils: found, error } = await findPupilsByName(
+      status.school.id,
+      studentFirst,
+      studentLast,
+      studentClass || null,
+    );
+    setBusy(false);
+    if (error) {
+      setMsg(`Could not look up that name: ${error}`);
+      return;
+    }
+    if (found.length === 0) {
+      setMsg(
+        `No pupil called "${studentFirst.trim()} ${studentLast.trim()}"${studentClass ? " in that class" : ""} in ${status.school.name}. Check the spelling exactly as written, or register as a new pupil below.`,
+      );
+      return;
+    }
+    if (found.length > 1) {
+      setMsg(
+        `More than one pupil is called "${studentFirst.trim()} ${studentLast.trim()}". Use your student ID to pick the right one.`,
+      );
+      return;
+    }
+    const pupil = found[0];
+    setMatchedPupil(pupil);
+    setFirstName(pupil.first_name);
+    setLastName(pupil.last_name);
+    setMsg(`Found you: ${pupil.first_name} ${pupil.last_name}${pupil.class_name ? ` · ${pupil.class_name}` : ""}. Check it is you, then set your password below.`);
+  };
+
+  const clearMatchedPupil = () => {
+    setMatchedPupil(null);
+    setFirstName("");
+    setLastName("");
+    setStudentIdInput("");
+    setStudentFirst("");
+    setStudentLast("");
+    setMsg("");
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!status) return;
@@ -167,7 +272,11 @@ export default function RegisterForm({
       setMsg("Enter a valid email address.");
       return;
     }
-    if (role === "student" && !classId) {
+    if (role === "student" && studentMode !== "manual" && !matchedPupil) {
+      setMsg("Look up your record first - by student ID, or by your name as written.");
+      return;
+    }
+    if (role === "student" && studentMode === "manual" && !classId) {
       setMsg("Choose your class.");
       return;
     }
@@ -188,13 +297,27 @@ export default function RegisterForm({
     setBusy(true);
     setMsg("");
 
+    // Teacher picks: one pick per subject chosen, or one class-only
+    // pick when no subject is ticked for that class.
+    const classPicks: { class_id: string; subject_id: string | null }[] =
+      role === "teacher"
+        ? pickedClasses.flatMap((cId) => {
+            const subs = pickedSubjects[cId] ?? [];
+            return subs.length > 0
+              ? subs.map((sId) => ({ class_id: cId, subject_id: sId as string | null }))
+              : [{ class_id: cId, subject_id: null as string | null }];
+          })
+        : [];
+
     const input: RegistrationInput = {
       schoolId: status.school.id,
       role,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       phone: phone.trim(),
-      classId: role === "student" ? classId : null,
+      classId: role === "student" && studentMode === "manual" ? classId : null,
+      studentId: role === "student" && matchedPupil ? matchedPupil.id : null,
+      classPicks,
       pupils:
         role === "parent"
           ? pupils.map((p) =>
@@ -210,18 +333,23 @@ export default function RegisterForm({
           : [],
     };
 
-    // Already signed in (e.g. a second registration attempt, or an
-    // account created while email confirmation was pending): finish
-    // the registration straight away.
-    if (user) {
-      const res = await registerSelf(input);
+    const finish = (res: { ok: boolean; error?: string; admission_no?: unknown; pre_verified?: unknown; status?: unknown }) => {
       setBusy(false);
       if (!res.ok) {
         setMsg(res.error ?? "Could not complete your registration.");
         return;
       }
       if (typeof res.admission_no === "string") setAdmissionNoOut(res.admission_no);
+      setPreVerified(res.pre_verified === true || res.status === "Active");
       setDone(true);
+    };
+
+    // Already signed in (e.g. a second registration attempt, or an
+    // account created while email confirmation was pending): finish
+    // the registration straight away.
+    if (user) {
+      const res = await registerSelf(input);
+      finish(res);
       return;
     }
 
@@ -256,13 +384,7 @@ export default function RegisterForm({
       return;
     }
     const res = await registerSelf(input);
-    setBusy(false);
-    if (!res.ok) {
-      setMsg(res.error ?? "Account created, but the registration could not be finished.");
-      return;
-    }
-    if (typeof res.admission_no === "string") setAdmissionNoOut(res.admission_no);
-    setDone(true);
+    finish(res);
   };
 
   if (state === "loading") {
@@ -303,21 +425,31 @@ export default function RegisterForm({
           </div>
         </div>
         <Card>
-          <p className="text-sm text-slate-600">
-            Your account is created and <strong>waiting for approval</strong>.
-            {role === "teacher" && " The school admin will approve it."}
-            {role === "student" && " Your class teacher or the school admin will approve it."}
-            {role === "parent" && " The school admin or senior staff will approve it - and check each pupil link you added."}
-          </p>
+          {preVerified ? (
+            <p className="text-sm text-slate-600">
+              <strong>You are in.</strong> Your record was already in the
+              school list, so no approval was needed. Sign in to open your
+              workspace.
+            </p>
+          ) : (
+            <p className="text-sm text-slate-600">
+              Your account is created and <strong>waiting for approval</strong>.
+              {role === "teacher" && " The school admin will approve it."}
+              {role === "student" && " Your class teacher or the school admin will approve it."}
+              {role === "parent" && " The school admin or senior staff will approve it - and check each pupil link you added."}
+            </p>
+          )}
           {admissionNoOut && (
             <p className="mt-3 rounded-lg bg-mist px-3 py-2 text-sm">
               <strong>Your admission number is {admissionNoOut}.</strong> Keep it safe - your parent will need it to link you.
             </p>
           )}
-          <p className="mt-3 text-sm text-slate-600">
-            You can sign in now to complete your profile and setup, but the
-            rest of your workspace stays locked until approval.
-          </p>
+          {!preVerified && (
+            <p className="mt-3 text-sm text-slate-600">
+              You can sign in now to complete your profile and setup, but the
+              rest of your workspace stays locked until approval.
+            </p>
+          )}
           <Link href={`/${slug}/login`} className={`${btnCls} mt-4 inline-block`}>
             Sign in →
           </Link>
@@ -368,13 +500,22 @@ export default function RegisterForm({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={labelCls}>First name</label>
-                  <input className={inputCls} value={firstName} onChange={(e) => setFirstName(e.target.value)} autoComplete="given-name" />
+                  <input className={inputCls} value={firstName} onChange={(e) => setFirstName(e.target.value)} autoComplete="given-name" disabled={!!matchedPupil} />
                 </div>
                 <div>
                   <label className={labelCls}>Last name</label>
-                  <input className={inputCls} value={lastName} onChange={(e) => setLastName(e.target.value)} autoComplete="family-name" />
+                  <input className={inputCls} value={lastName} onChange={(e) => setLastName(e.target.value)} autoComplete="family-name" disabled={!!matchedPupil} />
                 </div>
               </div>
+              {matchedPupil && (
+                <p className="text-xs text-slate-500">
+                  Name taken from your school record ({matchedPupil.first_name} {matchedPupil.last_name}
+                  {matchedPupil.class_name ? ` · ${matchedPupil.class_name}` : ""}).{" "}
+                  <button type="button" className="font-semibold text-royal" onClick={clearMatchedPupil}>
+                    Not you? Start again
+                  </button>
+                </p>
+              )}
               <div>
                 <label className={labelCls}>Email</label>
                 <input
@@ -393,20 +534,144 @@ export default function RegisterForm({
                 <input className={inputCls} type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
               </div>
 
-              {role === "student" && (
-                <div>
-                  <label className={labelCls}>My class</label>
-                  <select className={inputCls} value={classId} onChange={(e) => setClassId(e.target.value)}>
-                    <option value="">- Choose your class -</option>
-                    {status.classes.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                        {c.arm ? ` · Arm ${c.arm}` : ""}
-                      </option>
-                    ))}
-                  </select>
+              {role === "teacher" && (
+                <div className="rounded-xl border border-line bg-mist p-3">
+                  <h3 className="font-semibold">Classes I teach</h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Tick each class you teach. Then tick the subjects you
+                    teach in that class - or leave the subjects blank to
+                    cover the whole class. The admin still approves your
+                    account before you can use these classes.
+                  </p>
                   {status.classes.length === 0 && (
-                    <p className="mt-1 text-xs text-slate-400">No classes yet - the school admin creates classes before student registration opens.</p>
+                    <p className="mt-2 text-sm text-slate-500">No classes yet - the school admin creates classes before teacher registration opens.</p>
+                  )}
+                  <div className="mt-2 space-y-2">
+                    {status.classes.map((c) => {
+                      const subs = subjectsOfClass(c.id);
+                      const checked = pickedClasses.includes(c.id);
+                      return (
+                        <div key={c.id} className="rounded-lg bg-white px-3 py-2">
+                          <label className="flex items-center gap-2 text-sm font-semibold">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => togglePickedClass(c.id)}
+                            />
+                            {c.name}
+                            {c.arm ? ` · Arm ${c.arm}` : ""}
+                          </label>
+                          {checked && subs.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-2 pl-6">
+                              {subs.map((s) => (
+                                <label key={s.subject_id} className="flex items-center gap-1 rounded-full border border-line px-2 py-1 text-xs font-semibold text-slate-600">
+                                  <input
+                                    type="checkbox"
+                                    checked={(pickedSubjects[c.id] ?? []).includes(s.subject_id)}
+                                    onChange={() => togglePickedSubject(c.id, s.subject_id)}
+                                  />
+                                  {s.subject_name}
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                          {checked && subs.length === 0 && (
+                            <p className="mt-1 pl-6 text-xs text-slate-400">No subjects assigned to this class yet - you will cover the whole class.</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {role === "student" && (
+                <div className="rounded-xl border border-line bg-mist p-3">
+                  <h3 className="font-semibold">Find my school record</h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    The school already has most pupils on file. Find your
+                    record and you are straight in - no approval wait. If
+                    you are not on file, use “Register as a new pupil”.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2 text-sm">
+                    <button
+                      type="button"
+                      className={`rounded-full px-3 py-1 font-semibold ${studentMode === "id" ? "bg-royal text-white" : "border border-line bg-white"}`}
+                      onClick={() => { setStudentMode("id"); setMatchedPupil(null); }}
+                    >
+                      By student ID
+                    </button>
+                    <button
+                      type="button"
+                      className={`rounded-full px-3 py-1 font-semibold ${studentMode === "name" ? "bg-royal text-white" : "border border-line bg-white"}`}
+                      onClick={() => { setStudentMode("name"); setMatchedPupil(null); }}
+                    >
+                      By my name
+                    </button>
+                    <button
+                      type="button"
+                      className={`rounded-full px-3 py-1 font-semibold ${studentMode === "manual" ? "bg-royal text-white" : "border border-line bg-white"}`}
+                      onClick={() => { setStudentMode("manual"); setMatchedPupil(null); }}
+                    >
+                      Register as a new pupil
+                    </button>
+                  </div>
+                  {matchedPupil ? (
+                    <div className="mt-3 rounded-lg bg-white px-3 py-2 text-sm">
+                      <p>
+                        <strong>{matchedPupil.first_name} {matchedPupil.last_name}</strong>
+                        {matchedPupil.class_name ? ` · ${matchedPupil.class_name}` : ""}
+                      </p>
+                      <p className="text-xs text-slate-500">This is the record from the school file. Set your password below and you are in.</p>
+                    </div>
+                  ) : studentMode === "id" ? (
+                    <div className="mt-3 flex gap-2">
+                      <input
+                        className={inputCls}
+                        value={studentIdInput}
+                        onChange={(e) => setStudentIdInput(e.target.value)}
+                        placeholder="e.g. DSV/2026/0001"
+                      />
+                      <button type="button" className={btnCls} onClick={lookupStudentById} disabled={busy || !studentIdInput.trim()}>
+                        Look up
+                      </button>
+                    </div>
+                  ) : studentMode === "name" ? (
+                    <div className="mt-3 space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <input className={inputCls} value={studentFirst} onChange={(e) => setStudentFirst(e.target.value)} placeholder="First name as written" />
+                        <input className={inputCls} value={studentLast} onChange={(e) => setStudentLast(e.target.value)} placeholder="Last name as written" />
+                      </div>
+                      <div className="flex gap-2">
+                        <select className={inputCls} value={studentClass} onChange={(e) => setStudentClass(e.target.value)}>
+                          <option value="">- Class (optional) -</option>
+                          {status.classes.map((c) => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                        <button type="button" className={btnCls} onClick={lookupStudentByName} disabled={busy || !studentFirst.trim() || !studentLast.trim()}>
+                          Look up
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3">
+                      <label className={labelCls}>My class</label>
+                      <select className={inputCls} value={classId} onChange={(e) => setClassId(e.target.value)}>
+                        <option value="">- Choose your class -</option>
+                        {status.classes.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                            {c.arm ? ` · Arm ${c.arm}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-xs text-slate-500">
+                        New pupils wait for their class teacher or the school
+                        admin to approve them. If the school has a concern,
+                        they will ask you to reach out to support.
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
@@ -498,11 +763,11 @@ export default function RegisterForm({
                 <>
                   <div>
                     <label className={labelCls}>Choose a password</label>
-                    <input className={inputCls} type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
+                    <PasswordInput value={password} onChange={setPassword} autoComplete="new-password" />
                   </div>
                   <div>
                     <label className={labelCls}>Repeat password</label>
-                    <input className={inputCls} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
+                    <PasswordInput value={confirm} onChange={setConfirm} autoComplete="new-password" />
                   </div>
                 </>
               )}
@@ -510,8 +775,9 @@ export default function RegisterForm({
                 Register as {ROLE_LABEL[role].toLowerCase()}
               </button>
               <p className="text-xs text-slate-400">
-                Your account is created as “waiting for approval”. The school
-                reviews it before you get full access.
+                {role === "student" && matchedPupil
+                  ? "Your record is already in the school list, so your account is active as soon as you register - no approval wait."
+                  : "Your account is created as “waiting for approval”. The school reviews it before you get full access."}
               </p>
             </form>
           </Card>
