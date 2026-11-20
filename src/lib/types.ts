@@ -9,6 +9,9 @@ export type School = {
   logo_url: string | null;
   plan: string;
   status: string;
+  // Admission form fee (migration 0007): amount in naira + on/off.
+  admission_fee_amount?: number | null;
+  admission_fee_required?: boolean;
   // Registration phases (migration 0006): each role registers only
   // while its phase is open. All closed by default.
   reg_teacher_open?: boolean;
@@ -167,6 +170,78 @@ export type RegistrationClass = {
   name: string;
   stage: string;
   arm: string | null;
+};
+
+// ---------------------------------------------------------------- admissions (migration 0007)
+export type AdmissionFeeStatus = "Free" | "Paid" | "Unpaid";
+
+export type AdmissionStatus =
+  | "Submitted"
+  | "Under review"
+  | "Assessment"
+  | "Offered"
+  | "Rejected"
+  | "Waitlisted"
+  | "Enrolled";
+
+export type AdmissionApplication = {
+  id: string;
+  school_id: string;
+  reference: string;
+  child_first_name: string;
+  child_last_name: string;
+  class_id: string | null;
+  entry_term_id: string | null;
+  parent_name: string | null;
+  parent_phone: string | null;
+  parent_email: string | null;
+  previous_school: string | null;
+  notes: string | null;
+  source: string;
+  status: string;
+  assessment_date: string | null;
+  assessment_note: string | null;
+  decision_note: string | null;
+  student_id: string | null;
+  fee_status: string;
+  fee_amount: number | null;
+  fee_reference: string | null;
+  fee_channel: string | null;
+  created_at: string;
+};
+
+export type AdmissionDocumentKind =
+  | "Birth certificate"
+  | "Previous result"
+  | "Passport photo"
+  | "Other";
+
+export type AdmissionDocument = {
+  id: string;
+  school_id: string;
+  application_id: string;
+  kind: string;
+  file_name: string;
+  storage_path: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  status: string;
+  review_note: string | null;
+  created_at: string;
+};
+
+export type AdmissionSettings = {
+  school: {
+    id: string;
+    slug: string;
+    name: string;
+    motto: string | null;
+    logo_url: string | null;
+  };
+  fee: { required: boolean; amount: number };
+  current_term: { id: string; session: string; name: string } | null;
+  terms: { id: string; session: string; name: string; is_current: boolean }[];
+  classes: RegistrationClass[];
 };
 
 export type RegistrationStatus = {
