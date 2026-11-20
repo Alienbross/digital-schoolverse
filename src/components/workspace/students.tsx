@@ -118,6 +118,7 @@ export default function Students() {
                 <li key={s.id} className="flex items-center justify-between gap-2 rounded-lg bg-mist px-3 py-2">
                   <span><strong>{s.first_name} {s.last_name}</strong> · {classNameOf(s.class_id)}</span>
                   <span className="flex shrink-0 items-center gap-3">
+                    <Link href={`${base}/students/${s.id}/profile`} className="font-semibold text-royal">Profile →</Link>
                     <Link href={`${base}/students/${s.id}/report-card`} className="font-semibold text-royal">Report card →</Link>
                     <span className="font-mono text-xs text-slate-500">{s.admission_no}</span>
                   </span>
