@@ -54,7 +54,13 @@ Without env vars the app still builds and runs, but shows a
    URLs - each school gets its own address, e.g. `/greenfield`), then
    `supabase/migrations/0005_role_workspaces.sql` (scoped write access
    for teacher / student / parent roles - registers, scores, CBT
-   attempts, complaints, messages, test fee payments).
+   attempts, complaints, messages, test fee payments), then
+   `supabase/migrations/0006_registration_approvals.sql`
+   (self-registration + approvals, in-app notifications), then
+   `supabase/migrations/0007_admission_fees_uploads.sql` (admission
+   form fee test checkout + document uploads), then
+   `supabase/migrations/0008_absence_emails.sql` (absence emails to
+   parents - queued in the portal, no live email provider yet).
 3. Copy the project URL + anon key (Settings → API) into `.env.local`.
 
 ## Auth + Mother Board (live in this build)
@@ -111,6 +117,22 @@ Without env vars the app still builds and runs, but shows a
   links, and to the user on approval / rejection. School admins still
   do NOT self-register - the platform owner invites them from the
   Mother Board, as before.
+- **Absence emails to parents** (migration 0008): when a teacher
+  saves a register with a pupil marked Absent (or Late, as a milder
+  notice), the portal queues one email notice per linked parent
+  (Approved links only) in the `absence_emails` table - pupil,
+  parent, parent email, date, reason, status. No live email provider
+  is connected yet, so no real email is sent: rows are labelled
+  Queued - no live email provider yet and shown in the portal
+  instead (the parent's workspace, the teacher's register page, and
+  the admin Overview log). Parents with no email on record are
+  flagged Unreachable - no email on record in the log, never
+  silently skipped. The teacher can add an optional reason per
+  Absent / Late pupil, saved on the register row and copied into
+  the notice. Re-saving a register updates the notice in place and
+  clears still-queued notices for pupils re-marked Present /
+  Excused. The plug-in point for a real sender is `sendAbsenceEmail`
+  in `src/lib/absence-emails.ts` (Resend / SendGrid later).
 - **First owner login**: create the user in Supabase → Authentication
   → Users, then insert their `profiles` row with role
   `platform_owner` in the SQL editor. Full steps in
@@ -137,6 +159,16 @@ Without env vars the app still builds and runs, but shows a
 
 ## What still needs the user
 
+- **Run migration 0008** in the Supabase SQL editor (see above) -
+  until then absence emails cannot be queued: saving a register
+  with a pupil Absent / Late will fail to record the parent notice
+  (the register itself still saves, with a note saying the queue
+  failed). Run it after 0007, then push + redeploy.
+- **Live email provider for absence emails** - absence notices are
+  queued in the portal only (labelled Queued - no live email
+  provider yet) until a provider such as Resend or SendGrid is
+  connected; the plug-in point is `sendAbsenceEmail` in
+  `src/lib/absence-emails.ts`.
 - **Run migration 0006** in the Supabase SQL editor (see above) -
   until then the register pages show "School not found" (the
   `school_registration_status` RPC does not exist yet), approvals do
