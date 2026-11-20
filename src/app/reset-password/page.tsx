@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import PasswordInput from "@/components/password-input";
 import { btnCls, Card, inputCls, labelCls, PageHeader } from "@/components/ui";
 
 export default function ResetPassword() {
@@ -44,23 +45,11 @@ export default function ResetPassword() {
           <form onSubmit={save} className="space-y-3">
             <div>
               <label className={labelCls}>New password</label>
-              <input
-                className={inputCls}
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="new-password"
-              />
+              <PasswordInput value={password} onChange={setPassword} autoComplete="new-password" />
             </div>
             <div>
               <label className={labelCls}>Repeat new password</label>
-              <input
-                className={inputCls}
-                type="password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                autoComplete="new-password"
-              />
+              <PasswordInput value={confirm} onChange={setConfirm} autoComplete="new-password" />
             </div>
             <button className={btnCls} disabled={busy}>
               Set new password
