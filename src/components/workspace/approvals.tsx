@@ -41,6 +41,8 @@ export default function ApprovalsList({
   const [busyId, setBusyId] = useState("");
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
   const [rejectingId, setRejectingId] = useState("");
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
 
   const load = async () => {
     const [profiles, pendingLinks] = await Promise.all([
@@ -77,13 +79,24 @@ export default function ApprovalsList({
     if (scope === "admin") return true;
     return !!l.class_id && (myClassIds ?? []).includes(l.class_id);
   });
+  // Filters: search by name or email, and role (teachers, students,
+  // parents waiting for approval).
+  const q = search.trim().toLowerCase();
+  const filteredProfiles = visibleProfiles.filter(
+    (p) =>
+      (!roleFilter || p.role === roleFilter) &&
+      (!q || `${p.display_name ?? ""} ${p.email}`.toLowerCase().includes(q)),
+  );
+  const filteredLinks = visibleLinks.filter(
+    (l) => !q || `${l.parent_name} ${l.student_name} ${l.admission_no}`.toLowerCase().includes(q),
+  );
   // Links of a still-pending parent are decided with the parent's
   // account (approving the parent approves their links), so the
   // separate link list only shows links from already-approved parents.
   const pendingParentIds = new Set(
     pending.filter((p) => p.role === "parent").map((p) => p.parent_id),
   );
-  const standaloneLinks = visibleLinks.filter(
+  const standaloneLinks = filteredLinks.filter(
     (l) => !pendingParentIds.has(l.parent_id),
   );
 
@@ -129,9 +142,18 @@ export default function ApprovalsList({
   const studentOf = (p: Profile) =>
     students.find((s) => s.id === p.student_id);
 
-  if (visibleProfiles.length === 0 && standaloneLinks.length === 0) {
+  if (filteredProfiles.length === 0 && standaloneLinks.length === 0) {
     return (
       <Card>
+        <div className="mb-3 grid gap-2 md:grid-cols-2">
+          <input className={inputCls} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email…" />
+          <select className={inputCls} value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+            <option value="">All roles</option>
+            <option value="teacher">Teachers</option>
+            <option value="student">Students</option>
+            <option value="parent">Parents</option>
+          </select>
+        </div>
         <p className="text-sm text-slate-500">
           Nothing waiting for approval right now.
           {scope === "teacher" &&
@@ -145,12 +167,23 @@ export default function ApprovalsList({
   return (
     <div className="space-y-4">
       {msg && <p className="text-sm font-medium text-royal">{msg}</p>}
-      {visibleProfiles.length > 0 && (
+      <Card>
+        <div className="grid gap-2 md:grid-cols-2">
+          <input className={inputCls} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email…" />
+          <select className={inputCls} value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+            <option value="">All roles</option>
+            <option value="teacher">Teachers</option>
+            <option value="student">Students</option>
+            <option value="parent">Parents</option>
+          </select>
+        </div>
+      </Card>
+      {filteredProfiles.length > 0 && (
         <div className="space-y-3">
           <h2 className="font-semibold">
-            Accounts waiting for approval ({visibleProfiles.length})
+            Accounts waiting for approval ({filteredProfiles.length})
           </h2>
-          {visibleProfiles.map((p) => (
+          {filteredProfiles.map((p) => (
             <Card key={p.id}>
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
