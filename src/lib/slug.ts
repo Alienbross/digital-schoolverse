@@ -84,6 +84,9 @@ export type SchoolBySlug = {
   name: string;
   motto: string | null;
   logo_url: string | null;
+  // Portal primary colour (migration 0010). Null = default Royal Blue.
+  primary_color?: string | null;
+  logo_color?: string | null;
 };
 
 /** Resolve a path slug to a school (public RPC from migration 0004).
