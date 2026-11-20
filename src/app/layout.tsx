@@ -20,6 +20,23 @@ export const metadata: Metadata = {
   title: "Digital SchoolVerse - School Portal",
   description:
     "One online platform for primary and secondary schools, parents, teachers and students.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "SchoolVerse",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+};
+
+export const viewport = {
+  themeColor: "#1D4ED8",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
