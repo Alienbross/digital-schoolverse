@@ -129,6 +129,18 @@ export type Teacher = {
   can_approve_parents?: boolean;
 };
 
+// A class (and optional subject) a teacher picked themself at
+// registration, or changed later (migration 0011). A pick counts as
+// teaching that class - and that subject, when one is picked.
+export type TeacherClassPick = {
+  id: string;
+  school_id: string;
+  teacher_id: string;
+  class_id: string;
+  subject_id: string | null;
+  created_at: string;
+};
+
 export type Student = {
   id: string;
   school_id: string;
@@ -175,6 +187,14 @@ export type RegistrationClass = {
   name: string;
   stage: string;
   arm: string | null;
+};
+
+// Which subjects are offered in each class (migration 0011) - the
+// teacher register page offers these as subject picks.
+export type RegistrationClassSubject = {
+  class_id: string;
+  subject_id: string;
+  subject_name: string;
 };
 
 // ---------------------------------------------------------------- admissions (migration 0007)
@@ -259,6 +279,7 @@ export type RegistrationStatus = {
   };
   phases: RegistrationPhases;
   classes: RegistrationClass[];
+  class_subjects: RegistrationClassSubject[];
 };
 
 export type PupilMatch = {
