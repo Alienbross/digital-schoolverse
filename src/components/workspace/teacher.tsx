@@ -18,11 +18,18 @@ import { LockedNotice } from "@/components/pending-banner";
 import ApprovalsList from "@/components/workspace/approvals";
 import AbsenceNoticesLog from "@/components/workspace/absence-notices";
 import { queueAbsenceNotices } from "@/lib/absence-emails";
+import { RemindersList } from "@/components/workspace/teacher-reminders";
+import {
+  countNeedingAttentionToday,
+  loadTeacherReminders,
+  type TeacherReminder,
+} from "@/lib/teacher-reminders";
 import TimetableView from "@/components/workspace/timetable-view";
 import MessagesPanel from "@/components/workspace/messages-panel";
 import ComplaintWizard from "@/components/workspace/complaint-wizard";
 
 type Tab =
+  | "reminders"
   | "classes"
   | "attendance"
   | "scores"
@@ -36,6 +43,7 @@ type Tab =
   | "approvals";
 
 const TABS: { id: Tab; label: string }[] = [
+  { id: "reminders", label: "Reminders" },
   { id: "classes", label: "My Classes" },
   { id: "attendance", label: "Attendance" },
   { id: "scores", label: "Scores & Results" },
@@ -76,6 +84,9 @@ export default function TeacherWorkspace() {
   const [students, setStudents] = useState<Student[]>([]);
   const [term, setTerm] = useState<Term | null>(null);
   const [msg, setMsg] = useState("");
+  // Teacher reminders (step 3): computed from live data, read-only.
+  const [reminders, setReminders] = useState<TeacherReminder[]>([]);
+  const [remindersLoaded, setRemindersLoaded] = useState(false);
 
   // The teacher this workspace is for: the signed-in teacher, or - for
   // the platform owner / school admin previewing - a teacher they pick.
@@ -111,6 +122,34 @@ export default function TeacherWorkspace() {
     if (isSupabaseConfigured && !authLoading) loadBase();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, schoolId]);
+
+  // Reminders refresh whenever the teacher, their classes or the
+  // term change - and after a register / score save, which clears
+  // the reminder it answers. Recomputed from live data each time.
+  useEffect(() => {
+    if (!schoolId || !teacherId || isPending) {
+      setReminders([]);
+      setRemindersLoaded(true);
+      return;
+    }
+    setRemindersLoaded(false);
+    (async () => {
+      setReminders(
+        await loadTeacherReminders({
+          schoolId,
+          teacherId,
+          myClasses,
+          myClassIds,
+          classSubjects,
+          students,
+          term,
+          subjectName,
+        }),
+      );
+      setRemindersLoaded(true);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schoolId, teacherId, term?.id, classes.length, classSubjects.length, students.length, msg]);
 
   /* eslint-disable react-hooks/set-state-in-effect -- prefill from the loaded record, as elsewhere in this codebase */
   useEffect(() => {
@@ -220,7 +259,11 @@ export default function TeacherWorkspace() {
             return !isPending && (myClassIds.length > 0 || !!me?.can_approve_parents);
           return true;
         }).map((t) => {
-          const locked = !!isPending && t.id !== "classes";
+          const locked = !!isPending && t.id !== "classes" && t.id !== "reminders";
+          const reminderBadge =
+            t.id === "reminders" && remindersLoaded
+              ? countNeedingAttentionToday(reminders)
+              : 0;
           return (
             <button
               key={t.id}
@@ -230,14 +273,34 @@ export default function TeacherWorkspace() {
               className={`rounded-full px-3 py-1.5 text-sm font-semibold disabled:opacity-50 ${tab === t.id ? "bg-royal text-white" : "border border-line bg-white text-slate-600"}`}
             >
               {t.label}
+              {reminderBadge > 0 && (
+                <span className={`ml-1 rounded-full px-1.5 py-0.5 text-xs font-bold ${tab === t.id ? "bg-white text-royal" : "bg-red-600 text-white"}`}>
+                  {reminderBadge}
+                </span>
+              )}
               {locked ? " 🔒" : ""}
             </button>
           );
         })}
       </div>
+      {remindersLoaded && !isPending && countNeedingAttentionToday(reminders) > 0 && tab !== "reminders" && (
+        <button
+          onClick={() => setTab("reminders")}
+          className="mb-4 w-full rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-left text-sm font-semibold text-amber-800"
+        >
+          {countNeedingAttentionToday(reminders)} task{countNeedingAttentionToday(reminders) === 1 ? "" : "s"} need{countNeedingAttentionToday(reminders) === 1 ? "s" : ""} your attention today - see Reminders →
+        </button>
+      )}
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
       {isPending && tab !== "classes" && (
         <LockedNotice what="This part of the teacher workspace" />
+      )}
+
+      {tab === "reminders" && (
+        <RemindersList
+          reminders={reminders}
+          onGo={(target) => setTab(target)}
+        />
       )}
 
       {tab === "classes" && (
