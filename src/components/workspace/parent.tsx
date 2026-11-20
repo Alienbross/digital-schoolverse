@@ -22,6 +22,7 @@ import {
 } from "@/lib/registration";
 import type { ParentChild, PupilMatch } from "@/lib/types";
 import TimetableView from "@/components/workspace/timetable-view";
+import AbsenceNoticesLog from "@/components/workspace/absence-notices";
 import MessagesPanel from "@/components/workspace/messages-panel";
 import ComplaintWizard from "@/components/workspace/complaint-wizard";
 
@@ -447,6 +448,14 @@ export default function ParentWorkspace() {
         </div>
       ) : tab === "children" && (
         <div className="space-y-4">
+          {me && (
+            <AbsenceNoticesLog
+              schoolId={schoolId ?? ""}
+              parentId={me.id}
+              mode="parent"
+              title="Absence notices"
+            />
+          )}
           {children.length === 0 && (
             <Card><p className="text-sm text-slate-500">No children linked to this account yet. Ask the school admin to link your children under Parents.</p></Card>
           )}
