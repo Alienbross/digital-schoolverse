@@ -19,6 +19,7 @@ const SCHOOL_NAV = [
   { href: "/classes", label: "Classes & Arms" },
   { href: "/subjects", label: "Subjects" },
   { href: "/students", label: "Students" },
+  { href: "/admissions", label: "Admissions" },
   { href: "/teachers", label: "Teachers & Staff" },
   { href: "/parents", label: "Parents" },
   { href: "/plan", label: "Plan & Roadmap" },
