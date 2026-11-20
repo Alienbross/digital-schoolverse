@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/components/theme";
 import { SchoolLogo } from "@/components/school-logo";
 import NotificationsBell from "@/components/notifications-bell";
 import { PendingBanner } from "@/components/pending-banner";
+import { InstallAppButton, InstallBanner } from "@/components/install-app";
 
 const SCHOOL_NAV = [
   { href: "/", label: "Overview" },
@@ -182,6 +183,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <ThemeToggle />
         </header>
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+          <InstallBanner />
           {children}
         </main>
       </div>
@@ -225,6 +227,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <ThemeToggle />
           </header>
           <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+            <InstallBanner />
             {children}
           </main>
         </div>
@@ -387,6 +390,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
           >
             Sign out
           </button>
+          <div className="mt-2">
+            <InstallAppButton />
+          </div>
         </div>
       </aside>
 
@@ -451,6 +457,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           </p>
         </header>
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+          <InstallBanner />
           {profile && <PendingBanner profile={profile} />}
           {children}
         </main>
