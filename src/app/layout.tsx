@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import AppShell from "@/components/app-shell";
+import SchoolBranding from "@/components/school-branding";
 import { ThemeScript } from "@/components/theme";
 
 const geistSans = Geist({
@@ -50,6 +51,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <ThemeScript />
       </head>
       <body className="min-h-full bg-mist text-ink">
+        {/* Per-school branding (migration 0010): on a /<slug> path the
+            portal takes that school's logo colour, favicon and
+            manifest; platform pages keep Royal Blue. Suspense because
+            it reads the path, which is only known at runtime. */}
+        <Suspense fallback={null}>
+          <SchoolBranding />
+        </Suspense>
         <AuthProvider>
           <Suspense fallback={<main className="mx-auto w-full max-w-5xl px-4 py-12"><p className="text-sm text-slate-500">Loading…</p></main>}>
             <AppShell>{children}</AppShell>
