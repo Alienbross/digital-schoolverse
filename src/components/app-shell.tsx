@@ -76,13 +76,6 @@ function sidebarLinkClass(active: boolean): string {
     : "rounded-lg px-3 py-2 text-sm font-medium text-white/85 hover:bg-white/10 hover:text-white";
 }
 
-/** Phone top-strip link classes. Active section is a royal pill. */
-function phoneLinkClass(active: boolean): string {
-  return active
-    ? "whitespace-nowrap rounded-full bg-royal px-3 py-1 font-semibold text-white"
-    : "whitespace-nowrap px-1 py-1 font-medium text-slate-600 hover:text-royal";
-}
-
 function isPublic(pathname: string) {
   return isPublicPath(pathname);
 }
@@ -100,6 +93,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const { loading, user, profile, isOwner, ownerSchoolId, setOwnerSchoolId, signOut, schoolId, setPathSlug, pathSchool } =
     useAuth();
   const [schools, setSchools] = useState<School[]>([]);
+  // Phone menu drawer (hamburger). Desktop keeps the fixed sidebar;
+  // on a phone the menu opens as a slide-in sidebar instead of the
+  // old sideways-sliding strip at the top.
+  const [drawerOpen, setDrawerOpen] = useState(false);
   // The school whose portal this is - its logo brands the header for
   // every user of that school. Mother Board pages keep the platform
   // branding instead (see below).
@@ -116,6 +113,28 @@ export default function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     setPathSlug(firstSegment(pathname) || null);
   }, [pathname, setPathSlug]);
+
+  // Close the phone drawer whenever the page changes, so tapping a
+  // menu item never leaves the drawer (or its overlay) behind.
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [pathname]);
+
+  // While the drawer is open, stop the page behind it scrolling and
+  // let Escape close it. Both are undone when it closes.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawerOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [drawerOpen]);
 
   // The owner picking a school in the header opens that school's own
   // path (e.g. /greenfield); picking "All schools" goes back to "/".
@@ -317,6 +336,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           key={item.href}
           href={href}
           aria-current={active ? "page" : undefined}
+          onClick={() => setDrawerOpen(false)}
           className={sidebarLinkClass(active)}
         >
           {item.label}
@@ -324,8 +344,115 @@ export default function AppShell({ children }: { children: ReactNode }) {
       );
     });
 
+  // Phone drawer items: Mother Board nav first for the owner, then
+  // the school workspace nav - same order and labels as the desktop
+  // sidebar, with the school path base applied to workspace items.
+  const drawerItems = (isOwner ? [...MB_NAV, ...nav] : nav).map((item) => ({
+    ...item,
+    href: item.href.startsWith("/mother-board") ? item.href : withBase(base, item.href),
+    rootHref: item.href === "/" || item.href === "/mother-board" ? item.href : undefined,
+  }));
+
   return (
     <div className="flex min-h-screen">
+      {/* Phone menu drawer: hamburger opens a slide-in sidebar from
+          the left (deep navy, same as the desktop sidebar). Hidden on
+          desktop (md and up), where the fixed sidebar is used. */}
+      <div
+        className={`fixed inset-0 z-50 md:hidden ${drawerOpen ? "" : "pointer-events-none"}`}
+        aria-hidden={!drawerOpen}
+      >
+        <button
+          type="button"
+          aria-label="Close menu"
+          tabIndex={drawerOpen ? 0 : -1}
+          onClick={() => setDrawerOpen(false)}
+          className={`absolute inset-0 bg-black/50 transition-opacity ${drawerOpen ? "opacity-100" : "opacity-0"}`}
+        />
+        <aside
+          className={`absolute left-0 top-0 flex h-full w-72 flex-col overflow-y-auto bg-royal-deep p-5 text-white shadow-xl transition-transform duration-200 ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`}
+          role="dialog"
+          aria-label="Menu"
+        >
+          <div className="mb-6 flex items-center justify-between">
+            {inMotherBoard || !currentSchool ? (
+              <p className="text-lg font-bold leading-tight">Digital SchoolVerse</p>
+            ) : (
+              <span className="flex min-w-0 items-center gap-2">
+                <SchoolLogo name={currentSchool.name} logoUrl={currentSchool.logo_url} size={32} />
+                <span className="truncate text-lg font-bold leading-tight">{currentSchool.name}</span>
+              </span>
+            )}
+            <button
+              type="button"
+              aria-label="Close menu"
+              onClick={() => setDrawerOpen(false)}
+              className="shrink-0 rounded-lg px-2 py-1 text-xl font-bold text-white/85 hover:bg-white/10 hover:text-white"
+            >
+              ×
+            </button>
+          </div>
+          <nav className="flex flex-col gap-1">
+            {drawerItems.map((item) => {
+              const active = navItemActive(
+                pathname,
+                item.href,
+                item.href === (item.rootHref ?? "/"),
+              );
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => setDrawerOpen(false)}
+                  className={sidebarLinkClass(active)}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+          {isOwner && (
+            <div className="mt-6">
+              <label className="mb-1 block text-xs font-semibold text-white/60">
+                View school workspace as
+              </label>
+              <select
+                className="w-full rounded-lg border border-white/20 bg-royal-deep px-2 py-2 text-sm text-white"
+                value={pathSchool?.id ?? ownerSchoolId ?? ""}
+                onChange={(e) => pickSchool(e.target.value)}
+                aria-label="View school workspace as"
+              >
+                <option value="">- All schools (overview) -</option>
+                {schools.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="mt-auto pt-8">
+            <ThemeToggle />
+            <p className="mt-3 text-xs text-white/70">
+              {profile.display_name ?? profile.email}
+              <br />
+              {roleLabel}
+              {inMotherBoard ? " · Mother Board" : ""}
+            </p>
+            <button
+              className="mt-2 text-xs font-semibold text-skybrand hover:text-white"
+              onClick={() => signOut()}
+            >
+              Sign out
+            </button>
+            <div className="mt-2">
+              <InstallAppButton />
+            </div>
+          </div>
+        </aside>
+      </div>
+
       <aside className="hidden w-64 shrink-0 flex-col overflow-y-auto bg-royal-deep p-5 text-white md:flex">
         {inMotherBoard || !currentSchool ? (
           <div className="mb-6">
@@ -398,42 +525,31 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="border-b border-line bg-white px-4 py-3 md:hidden">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <button
+                type="button"
+                aria-label="Open menu"
+                aria-expanded={drawerOpen}
+                onClick={() => setDrawerOpen(true)}
+                className="shrink-0 rounded-lg border border-line px-2.5 py-1.5 text-lg font-bold leading-none text-royal"
+              >
+                ☰
+              </button>
             {inMotherBoard || !currentSchool ? (
-              <p className="font-bold text-royal">Digital SchoolVerse</p>
+              <p className="truncate font-bold text-royal">Digital SchoolVerse</p>
             ) : (
-              <span className="flex items-center gap-2">
+              <span className="flex min-w-0 items-center gap-2">
                 <SchoolLogo name={currentSchool.name} logoUrl={currentSchool.logo_url} size={28} />
-                <span className="font-bold text-royal">{currentSchool.name}</span>
+                <span className="truncate font-bold text-royal">{currentSchool.name}</span>
               </span>
             )}
-            <div className="flex items-center gap-2">
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
               <NotificationsBell />
               <ThemeToggle />
             </div>
           </div>
-          <nav className="mt-2 flex gap-3 overflow-x-auto text-sm">
-            {(isOwner ? [...MB_NAV, ...nav] : nav).map((item) => {
-              const href = item.href.startsWith("/mother-board")
-                ? item.href
-                : withBase(base, item.href);
-              const active = navItemActive(
-                pathname,
-                href,
-                item.href === "/" || item.href === "/mother-board",
-              );
-              return (
-                <Link
-                  key={item.href}
-                  href={href}
-                  aria-current={active ? "page" : undefined}
-                  className={phoneLinkClass(active)}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
           {isOwner && (
             <select
               className="mt-2 w-full rounded-lg border border-line bg-white px-2 py-1.5 text-sm"
