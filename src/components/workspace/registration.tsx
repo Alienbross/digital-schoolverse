@@ -39,8 +39,8 @@ export default function Registration() {
           <h2 className="font-semibold">How registration works here</h2>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
             <li>Teachers register first, then students, then parents - the admin opens each phase in School Setup.</li>
-            <li>Teachers are approved by the school admin only.</li>
-            <li>Students are approved by their class teacher or the school admin.</li>
+            <li>Teachers are approved by the school admin only. Teachers pick their own classes when they register.</li>
+            <li>Students are approved by their class teacher or the school admin - unless the admin already uploaded them in the pupil file, in which case they register with their student ID and are straight in.</li>
             <li>Parents are approved by the school admin or senior staff (granted in Teachers &amp; Staff).</li>
             <li>Approving a parent also approves the pupil links they proposed.</li>
           </ul>
