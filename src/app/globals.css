@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
 @theme {
-  --color-royal: #1d4ed8;
-  --color-royal-dark: #1e40af;
+  /* The portal primary colour comes from --brand, set per school by
+   * the SchoolBranding component (migration 0010): a school's logo
+   * colour, or the admin's manual pick. Unset, it is Royal Blue
+   * #1D4ED8 - the platform default, also used by the Mother Board.
+   * Sky #38BDF8 stays the accent for every school. Every bg-royal /
+   * text-royal / border-royal / hover:bg-royal-dark utility in the app
+   * follows --brand, so buttons, links, focus rings and the active
+   * menu highlight all take the school's colour at once. */
+  --color-royal: var(--brand, #1d4ed8);
+  --color-royal-dark: var(--brand-dark, #1e40af);
   --color-royal-deep: #0b2a6b;
   --color-skybrand: #38bdf8;
   --color-ink: #0f172a;
