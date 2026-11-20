@@ -41,6 +41,9 @@ export const RESERVED_SLUGS = new Set([
   // are real pages, not school slugs.
   "register",
   "registration",
+  // Admissions routes - /<slug>/admissions and /admissions/apply are
+  // real pages, not school slugs.
+  "admissions",
 ]);
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -117,7 +120,9 @@ export function useWorkspaceBase(): string {
 /** True for the public pages, on plain routes and under a school path:
  *  /login, /greenfield/login, /invite/<token>, /greenfield/invite/…,
  *  /reset-password, and the public registration pages
- *  /<slug>/register and /<slug>/register/<role> (migration 0006). */
+ *  /<slug>/register and /<slug>/register/<role> (migration 0006), plus
+ *  the public admission apply pages /<slug>/admissions/apply and
+ *  /admissions/apply (migration 0007). */
 export function isPublicPath(pathname: string): boolean {
   const segs = pathname.split("/").filter(Boolean);
   if (segs.length === 0) return false;
@@ -126,6 +131,9 @@ export function isPublicPath(pathname: string): boolean {
   if (segs.length >= 2 && (segs[1] === "login" || segs[1] === "invite"))
     return true;
   if (segs.length >= 2 && segs[1] === "register") return true;
+  if (segs[0] === "admissions" && segs[1] === "apply") return true;
+  if (segs.length >= 3 && segs[1] === "admissions" && segs[2] === "apply")
+    return true;
   return false;
 }
 
