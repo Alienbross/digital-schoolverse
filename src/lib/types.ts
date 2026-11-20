@@ -9,6 +9,11 @@ export type School = {
   logo_url: string | null;
   plan: string;
   status: string;
+  // Portal primary colour (migration 0010): the colour read from the
+  // logo, or the admin's manual pick. Null = default Royal Blue.
+  primary_color?: string | null;
+  logo_color?: string | null;
+  primary_color_source?: "logo" | "manual" | null;
   // Admission form fee (migration 0007): amount in naira + on/off.
   admission_fee_amount?: number | null;
   admission_fee_required?: boolean;
