@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useWorkspaceBase } from "@/lib/slug";
 import type { ClassRow, Student, Subject, Term } from "@/lib/types";
 import { gradeFor, ReportCardBody, ReportCardHeader } from "@/components/report-card";
+import { loadDomainRatings, type DomainRatings } from "@/lib/assessments";
 import { attendancePct, fetchCurrentTerm } from "@/lib/roles";
 import { btnCls, Card, ConfigBanner, inputCls, labelCls, PageHeader } from "@/components/ui";
 import TimetableView from "@/components/workspace/timetable-view";
@@ -57,6 +58,7 @@ export default function StudentWorkspace() {
   const [teachers, setTeachers] = useState<Record<string, string>>({});
   const [term, setTerm] = useState<Term | null>(null);
   const [scores, setScores] = useState<ScoreRow[]>([]);
+  const [domains, setDomains] = useState<{ affective: DomainRatings; psychomotor: DomainRatings } | null>(null);
   const [att, setAtt] = useState<{ status: string; record_date: string }[]>([]);
   const [homework, setHomework] = useState<{ id: string; title: string; instructions: string | null; due_date: string | null; subject_id: string | null }[]>([]);
 
@@ -168,6 +170,7 @@ export default function StudentWorkspace() {
         };
       });
       setScores(rows.sort((a, b) => a.subject.localeCompare(b.subject)));
+      if (schoolId) setDomains(await loadDomainRatings(schoolId, me.id, term.id));
       const { data: a } = await supabase
         .from("attendance_records")
         .select("status, record_date")
@@ -362,6 +365,8 @@ export default function StudentWorkspace() {
                   positionOf={null}
                   attendancePct={attStats.pct}
                   attendanceText={attStats.total > 0 ? `${attStats.present} of ${attStats.total} days` : "No register days yet"}
+                  affective={domains?.affective ?? null}
+                  psychomotor={domains?.psychomotor ?? null}
                 />
               </>
             ) : (
