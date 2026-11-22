@@ -44,6 +44,8 @@ export const RESERVED_SLUGS = new Set([
   // Admissions routes - /<slug>/admissions and /admissions/apply are
   // real pages, not school slugs.
   "admissions",
+  // Assessments route - /<slug>/assessments is a real page, not a slug.
+  "assessments",
 ]);
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
