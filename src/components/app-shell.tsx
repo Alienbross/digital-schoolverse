@@ -115,6 +115,28 @@ export default function AppShell({ children }: { children: ReactNode }) {
     setPathSlug(firstSegment(pathname) || null);
   }, [pathname, setPathSlug]);
 
+  // Password-recovery links sent from the Supabase dashboard land on
+  // "/" with type=recovery in the URL hash and no redirect to the
+  // reset page, so the user never sees the password form. Catch that
+  // hash here and send them to /reset-password. Only a recovery hash
+  // triggers this; normal sign-ins are untouched. Wait for the
+  // session first, so the recovery token is stored before the hash
+  // is left behind.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    if (hash.get("type") !== "recovery") return;
+    if (pathname.endsWith("/reset-password")) return;
+    let alive = true;
+    (async () => {
+      await supabase.auth.getSession();
+      if (alive) router.replace("/reset-password");
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [pathname, router]);
+
   // Close the phone drawer whenever the page changes, so tapping a
   // menu item never leaves the drawer (or its overlay) behind.
   useEffect(() => {
