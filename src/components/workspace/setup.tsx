@@ -14,6 +14,7 @@ import {
   primaryColorLabel,
 } from "@/lib/branding";
 import type { School, Term } from "@/lib/types";
+import { TraitEditor } from "@/components/workspace/assessments";
 import {
   btnCls,
   Card,
@@ -421,6 +422,14 @@ export default function Setup() {
                 </p>
               )}
             </div>
+          ) : (
+            <p className="text-sm text-slate-500">Save the school profile first.</p>
+          )}
+        </Card>
+        <Card>
+          <h2 className="mb-3 font-semibold">Assessment traits &amp; skills</h2>
+          {school ? (
+            <TraitEditor schoolId={school.id} readOnly={readOnly} />
           ) : (
             <p className="text-sm text-slate-500">Save the school profile first.</p>
           )}
