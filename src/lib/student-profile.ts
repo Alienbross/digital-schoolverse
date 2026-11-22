@@ -34,6 +34,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { gradeFor } from "@/components/report-card";
+import { loadDomainRatings, type DomainRatings } from "@/lib/assessments";
 import type { ClassRow, School, Student, Term } from "@/lib/types";
 
 export type BehaviourBand = "Excellent" | "Good" | "Needs attention" | "Concern";
@@ -74,6 +75,8 @@ export type StudentProfileData = {
   classPositionOf: number | null;
   strongest: string | null;
   weakest: string | null;
+  // Affective & psychomotor (current term, migration 0012)
+  domains: { affective: DomainRatings; psychomotor: DomainRatings };
   // Fees (current term)
   feeBilled: number;
   feePaid: number;
@@ -180,6 +183,17 @@ export function analyseProfile(d: StudentProfileData): StudentProfileAnalysis {
     }
   } else {
     watch.push("No scores entered for this term yet.");
+  }
+
+  // Affective & psychomotor (migration 0012)
+  for (const [label, avg] of [
+    ["Affective", d.domains.affective.average],
+    ["Psychomotor", d.domains.psychomotor.average],
+  ] as const) {
+    if (avg !== null) {
+      if (avg >= 4) strengths.push(`${label} average ${avg.toFixed(1)} / 5 this term - strong.`);
+      else if (avg <= 2) concerns.push(`${label} average is ${avg.toFixed(1)} / 5 this term - low.`);
+    }
   }
 
   // CBT
@@ -345,6 +359,9 @@ export async function loadStudentProfileData(
     supabase.from("parent_children").select("parent_id, parents(first_name, last_name, email, phone)").eq("student_id", student.id).eq("status", "Approved"),
   ]);
 
+  // Affective & psychomotor ratings (current term, migration 0012)
+  const domains = await loadDomainRatings(student.school_id, student.id, termId);
+
   // Attendance
   const attRows = (attRes.data ?? []) as { status: string; record_date: string; reason: string | null }[];
   const attTotal = attRows.length;
@@ -502,6 +519,7 @@ export async function loadStudentProfileData(
     classPositionOf,
     strongest,
     weakest,
+    domains,
     feeBilled,
     feePaid,
     feeBalance,
