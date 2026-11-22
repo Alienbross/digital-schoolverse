@@ -7,6 +7,8 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth, useCanManage } from "@/lib/auth";
 import { useWorkspaceBase } from "@/lib/slug";
 import type { ClassRow, School, Student } from "@/lib/types";
+import { loadClassDomainAverages } from "@/lib/assessments";
+import { fetchCurrentTerm } from "@/lib/roles";
 import {
   btnCls,
   Card,
@@ -41,6 +43,8 @@ export default function Students() {
   const [school, setSchool] = useState<School | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<ClassRow[]>([]);
+  // Domain averages this term (migration 0012), keyed by pupil id.
+  const [domainAvgs, setDomainAvgs] = useState<Record<string, { affective: number | null; psychomotor: number | null }>>({});
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState("");
   const [genderFilter, setGenderFilter] = useState("");
@@ -70,6 +74,8 @@ export default function Students() {
     setStudents(st ?? []);
     const { data: c } = await supabase.from("classes").select("*").eq("school_id", s.id).order("name");
     setClasses(c ?? []);
+    const term = await fetchCurrentTerm(s.id);
+    setDomainAvgs(await loadClassDomainAverages(s.id, term?.id ?? null));
   };
 
   useEffect(() => {
@@ -356,7 +362,14 @@ export default function Students() {
             <ul className="space-y-2 text-sm">
               {filtered.map((s) => (
                 <li key={s.id} className="flex items-center justify-between gap-2 rounded-lg bg-mist px-3 py-2">
-                  <span><strong>{s.first_name} {s.last_name}</strong> · {classNameOf(s.class_id)}</span>
+                  <span>
+                    <strong>{s.first_name} {s.last_name}</strong> · {classNameOf(s.class_id)}
+                    {domainAvgs[s.id] && (domainAvgs[s.id].affective !== null || domainAvgs[s.id].psychomotor !== null) && (
+                      <span className="block text-xs text-slate-500">
+                        Affective {domainAvgs[s.id].affective !== null ? `${domainAvgs[s.id].affective!.toFixed(1)}/5` : "-"} · Psychomotor {domainAvgs[s.id].psychomotor !== null ? `${domainAvgs[s.id].psychomotor!.toFixed(1)}/5` : "-"}
+                      </span>
+                    )}
+                  </span>
                   <span className="flex shrink-0 items-center gap-3">
                     <Link href={`${base}/students/${s.id}/profile`} className="font-semibold text-royal">Profile →</Link>
                     <Link href={`${base}/students/${s.id}/report-card`} className="font-semibold text-royal">Report card →</Link>
