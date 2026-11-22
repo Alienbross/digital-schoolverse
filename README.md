@@ -225,3 +225,4 @@ Without env vars the app still builds and runs, but shows a
 <!-- Deploy note: logo branding colours, 2026-11-20 -->
 <!-- Deploy note: login registration revamp, 2026-11-20 -->
 <!-- Deploy note: domain assessments, 2026-11-22 -->
+<!-- Redeploy trigger: owner login fixes (migration 0013, recovery redirect) -->
