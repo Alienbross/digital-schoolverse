@@ -15,6 +15,7 @@ import {
   profileSummaryText,
   type StudentProfileData,
 } from "@/lib/student-profile";
+import { DomainRatingsView } from "@/components/workspace/assessments";
 
 /** Student Profile - one pupil's analysed summary for counsellors,
  *  admin, class teachers, the pupil and (once shared) their parents.
@@ -350,6 +351,12 @@ export default function StudentProfile() {
           </div>
         )}
         {data.strongest && <p className="mt-2 text-sm text-slate-600">Strongest: {data.strongest} · Weakest: {data.weakest}</p>}
+      </Card>
+
+      {/* Affective & psychomotor (migration 0012) */}
+      <Card>
+        <h2 className="mb-3 font-semibold">Affective &amp; psychomotor this term</h2>
+        <DomainRatingsView ratings={data.domains} />
       </Card>
 
       {/* Attendance detail */}
