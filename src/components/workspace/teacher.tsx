@@ -21,6 +21,7 @@ import AbsenceNoticesLog from "@/components/workspace/absence-notices";
 import { queueAbsenceNotices } from "@/lib/absence-emails";
 import { setTeacherClassPicks } from "@/lib/registration";
 import { RemindersList } from "@/components/workspace/teacher-reminders";
+import AssessmentEntry from "@/components/workspace/assessments";
 import {
   countNeedingAttentionToday,
   loadTeacherReminders,
@@ -35,6 +36,7 @@ type Tab =
   | "classes"
   | "attendance"
   | "scores"
+  | "assessments"
   | "lessons"
   | "homework"
   | "timetable"
@@ -49,6 +51,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "classes", label: "My Classes" },
   { id: "attendance", label: "Attendance" },
   { id: "scores", label: "Scores & Results" },
+  { id: "assessments", label: "Assessments" },
   { id: "lessons", label: "Lesson Notes" },
   { id: "homework", label: "Homework" },
   { id: "timetable", label: "Timetable" },
@@ -487,6 +490,15 @@ export default function TeacherWorkspace() {
           pupilsOf={pupilsOf}
           term={term}
           base={base}
+        />
+      )}
+
+      {tab === "assessments" && !isPending && (
+        <AssessmentEntry
+          schoolId={schoolId ?? ""}
+          classes={myClasses}
+          pupilsOf={pupilsOf}
+          term={term}
         />
       )}
 
