@@ -125,7 +125,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select("*")
       .eq("id", u.id)
       .maybeSingle();
-    setProfile((data as Profile | null) ?? null);
+    if (data) {
+      setProfile(data as Profile);
+      return;
+    }
+    // Fallback: the direct read can return nothing even when the row
+    // exists. my_profile (migration 0013) is a SECURITY DEFINER
+    // function that returns only the caller's own row, so it fills
+    // the gap without ever exposing another user's profile.
+    const { data: rpcData } = await supabase.rpc("my_profile");
+    const row = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+    setProfile((row as Profile | null) ?? null);
   }, []);
 
   const refreshProfile = useCallback(async () => {
