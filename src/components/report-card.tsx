@@ -2,6 +2,7 @@
 
 import { SchoolLogo } from "@/components/school-logo";
 import type { School } from "@/lib/types";
+import { RATING_LABELS, type DomainRatings } from "@/lib/assessments";
 
 /** Nigerian grades used across the portal: A 70+, B 60–69, C 50–59,
  *  D 45–49, E 40–44, F below 40. */
@@ -50,7 +51,8 @@ export function ReportCardHeader({
 
 /** Collated term report card body: per-subject Test /20, Assignment
  *  /10, Exam /70, total and grade, plus overall average, class
- *  position and attendance. */
+ *  position and attendance - and, when entered, the Affective and
+ *  Psychomotor domain ratings (1-5) with their comments. */
 export function ReportCardBody({
   studentName,
   admissionNo,
@@ -61,6 +63,8 @@ export function ReportCardBody({
   positionOf,
   attendancePct,
   attendanceText,
+  affective,
+  psychomotor,
 }: {
   studentName: string;
   admissionNo: string;
@@ -71,6 +75,8 @@ export function ReportCardBody({
   positionOf: number | null;
   attendancePct: number | null;
   attendanceText: string;
+  affective?: DomainRatings | null;
+  psychomotor?: DomainRatings | null;
 }) {
   return (
     <div>
@@ -129,6 +135,47 @@ export function ReportCardBody({
           <strong>Attendance:</strong> {attendanceText}
         </p>
       </div>
+
+      {(affective || psychomotor) && (
+        <div className="mt-6 space-y-5">
+          {[
+            { title: "Affective domain", data: affective },
+            { title: "Psychomotor domain", data: psychomotor },
+          ].map(({ title, data }) =>
+            data && data.items.length > 0 ? (
+              <div key={title}>
+                <h3 className="mb-2 font-semibold">
+                  {title}
+                  {data.average !== null ? ` - average ${data.average.toFixed(1)} / 5` : ""}
+                </h3>
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-mist text-left">
+                      <th className="border border-line px-2 py-2">Trait / skill</th>
+                      <th className="border border-line px-2 py-2">Rating /5</th>
+                      <th className="border border-line px-2 py-2">Level</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.items.map((it) => (
+                      <tr key={it.traitId}>
+                        <td className="border border-line px-2 py-2 font-medium">{it.traitName}</td>
+                        <td className="border border-line px-2 py-2 font-semibold">{it.rating}</td>
+                        <td className="border border-line px-2 py-2">{RATING_LABELS[it.rating] ?? ""}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {data.comment && (
+                  <p className="mt-2 text-sm text-slate-600">
+                    <strong>Comment:</strong> {data.comment}
+                  </p>
+                )}
+              </div>
+            ) : null,
+          )}
+        </div>
+      )}
     </div>
   );
 }
