@@ -34,9 +34,12 @@ create table if not exists public.assessment_traits (
   name text not null,
   sort_order integer not null default 0,
   is_active boolean not null default true,
-  created_at timestamptz not null default now(),
-  unique (school_id, domain, lower(name))
+  created_at timestamptz not null default now()
 );
+-- Note: lower(name) cannot sit inside a UNIQUE table constraint in
+-- PostgreSQL, so the case-insensitive uniqueness lives in the index below.
+create unique index if not exists assessment_traits_school_domain_name_idx
+  on public.assessment_traits (school_id, domain, lower(name));
 create index if not exists assessment_traits_school_idx
   on public.assessment_traits(school_id, domain, sort_order);
 
