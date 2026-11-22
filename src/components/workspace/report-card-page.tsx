@@ -14,6 +14,7 @@ import {
   gradeFor,
   type ReportRow,
 } from "@/components/report-card";
+import { loadDomainRatings, type DomainRatings } from "@/lib/assessments";
 
 /** Collated term report card for one pupil: all subjects' Test /20,
  *  Assignment /10 and Exam /70 scores for the current term, overall
@@ -43,6 +44,7 @@ export default function StudentReportCard() {
   const [positionOf, setPositionOf] = useState<number | null>(null);
   const [attendancePct, setAttendancePct] = useState<number | null>(null);
   const [attendanceText, setAttendanceText] = useState("-");
+  const [domains, setDomains] = useState<{ affective: DomainRatings; psychomotor: DomainRatings } | null>(null);
   const [state, setState] = useState("loading");
 
   useEffect(() => {
@@ -113,6 +115,7 @@ export default function StudentReportCard() {
         if (built.length > 0) {
           setAverage(built.reduce((s, r) => s + r.total, 0) / built.length);
         }
+        setDomains(await loadDomainRatings(pupil.school_id, pupil.id, currentTerm.id));
 
         // Class position: average per pupil in the same class this term.
         if (pupil.class_id) {
@@ -198,6 +201,8 @@ export default function StudentReportCard() {
           positionOf={positionOf}
           attendancePct={attendancePct}
           attendanceText={attendanceText}
+          affective={domains?.affective ?? null}
+          psychomotor={domains?.psychomotor ?? null}
         />
       </Card>
       <button className={btnCls + " mt-4"} onClick={() => window.print()}>
