@@ -10,6 +10,46 @@ import {
   type StudentBioFields,
 } from "@/lib/student-bio";
 
+/** Read-only bio rows (club, interest, sport, ambition, favourite
+ *  colour, class teacher) for showing a pupil's bio to someone else
+ *  - the linked parent on My Children and on the pupil's profile
+ *  page. The bio is the pupil's own data shared with their parent,
+ *  so it is NOT gated behind the profile-share step. */
+export function BioFieldsList({
+  bio,
+  classTeacherName,
+}: {
+  bio: StudentBioFields | null;
+  classTeacherName: string | null;
+}) {
+  const rows: { label: string; value: string | null }[] = [
+    { label: "Club", value: bio?.club ?? null },
+    { label: "Interest", value: bio?.interest ?? null },
+    { label: "Sport", value: bio?.sport ?? null },
+    { label: "Ambition", value: bio?.ambition ?? null },
+    { label: "Favourite colour", value: bio?.favourite_colour ?? null },
+  ];
+  const filled = rows.some((r) => r.value);
+  return (
+    <div className="text-sm">
+      <p className="mb-2">
+        <strong>Class teacher:</strong> {classTeacherName ?? "Not assigned yet"}
+      </p>
+      {filled ? (
+        <ul className="space-y-1">
+          {rows.map((r) => (
+            <li key={r.label}>
+              <strong>{r.label}:</strong> {r.value ?? "Not filled in yet"}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-slate-500">No bio filled in yet.</p>
+      )}
+    </div>
+  );
+}
+
 /** Student bio (migration 0023).
  *
  *  Edit mode (the pupil themself): a form with Club, Interest,
