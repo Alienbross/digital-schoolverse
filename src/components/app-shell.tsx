@@ -24,6 +24,11 @@ const SCHOOL_NAV = [
   { href: "/admissions", label: "Admissions" },
   { href: "/teachers", label: "Teachers & Staff" },
   { href: "/parents", label: "Parents" },
+  { href: "/votes", label: "Voting" },
+  { href: "/news", label: "School News" },
+  { href: "/sickbay", label: "Sickbay Alerts" },
+  { href: "/summaries", label: "Summaries" },
+  { href: "/homework-reminders", label: "Homework Reminders" },
   { href: "/plan", label: "Plan & Roadmap" },
 ];
 
@@ -44,18 +49,31 @@ const MB_NAV = [
 const TEACHER_NAV = [
   { href: "/teacher", label: "Teacher workspace" },
   { href: "/games", label: "Games" },
+  { href: "/votes", label: "Voting" },
+  { href: "/news", label: "School News" },
+  { href: "/teacher-profiles", label: "Teacher Profiles" },
+  { href: "/sickbay", label: "Sickbay Alerts" },
+  { href: "/summaries", label: "Summaries" },
+  { href: "/homework-reminders", label: "Homework Reminders" },
   { href: "/plan", label: "Plan & Roadmap" },
 ];
 
 const STUDENT_NAV = [
   { href: "/student", label: "Student workspace" },
   { href: "/games", label: "Games" },
+  { href: "/votes", label: "Voting" },
+  { href: "/news", label: "School News" },
+  { href: "/my-bio", label: "My Bio" },
   { href: "/plan", label: "Plan & Roadmap" },
 ];
 
 const PARENT_NAV = [
   { href: "/parent", label: "Parent workspace" },
   { href: "/games", label: "Games" },
+  { href: "/votes", label: "Voting" },
+  { href: "/news", label: "School News" },
+  { href: "/teacher-profiles", label: "Teacher Profiles" },
+  { href: "/summaries", label: "Summaries" },
   { href: "/plan", label: "Plan & Roadmap" },
 ];
 
