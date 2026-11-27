@@ -354,6 +354,11 @@ export default function TeacherWorkspace() {
         <RemindersList
           reminders={reminders}
           onGo={(target) => setTab(target)}
+          teacherEmail={me?.email ?? profile?.email ?? ""}
+          teacherName={
+            me ? `${me.first_name} ${me.last_name}` : (profile?.display_name ?? "Teacher")
+          }
+          schoolName={schoolName}
         />
       )}
 
