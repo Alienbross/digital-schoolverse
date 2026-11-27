@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
-import { createInvite, inviteLink } from "@/lib/invites";
+import { createInvite, inviteLink, sendInviteEmail } from "@/lib/invites";
 import type { Role, School, SchoolInvite } from "@/lib/types";
 import { btnCls, Card, inputCls, labelCls } from "@/components/ui";
 
@@ -50,8 +50,23 @@ export default function MotherBoardInvites() {
       setBusy(false);
       return;
     }
-    setLastLink(inviteLink(res.invite.token, school.slug));
-    setMsg(`Invite created for ${email.trim()} - ${role.replace("_", " ")} at ${school.name}. Share the link below.`);
+    const link = inviteLink(res.invite.token, school.slug);
+    setLastLink(link);
+    // Live email on top of the link: with no key configured this
+    // sends nothing and the link below is shared by hand, as before.
+    const emailed = await sendInviteEmail({
+      email: email.trim(),
+      schoolName: school.name,
+      role,
+      link,
+    });
+    setMsg(
+      emailed.sent
+        ? `Invite created for ${email.trim()} - ${role.replace("_", " ")} at ${school.name}. Invite email sent - the link is also shown below.`
+        : emailed.configured
+          ? `Invite created for ${email.trim()} - ${role.replace("_", " ")} at ${school.name}. The invite email could not be sent - share the link below.`
+          : `Invite created for ${email.trim()} - ${role.replace("_", " ")} at ${school.name}. Share the link below.`,
+    );
     setEmail("");
     setBusy(false);
     load();
@@ -63,11 +78,26 @@ export default function MotherBoardInvites() {
     load();
   };
 
-  const resend = (inv: SchoolInvite) => {
-    // No email is sent yet - "resend" re-shows the live link to share.
+  const resend = async (inv: SchoolInvite) => {
+    // "Show link" still shows the live link to share by hand - and
+    // now also emails it when live email is configured. With no key
+    // configured nothing is sent and only the link is shown.
     const school = schools.find((s) => s.id === inv.school_id);
-    setLastLink(inviteLink(inv.token, school?.slug ?? null));
-    setMsg(`Invite link for ${inv.email} is shown below - share it again. (Live email sending plugs in later.)`);
+    const link = inviteLink(inv.token, school?.slug ?? null);
+    setLastLink(link);
+    const emailed = await sendInviteEmail({
+      email: inv.email,
+      schoolName: inv.school_name,
+      role: inv.role,
+      link,
+    });
+    setMsg(
+      emailed.sent
+        ? `Invite email sent to ${inv.email} - the link is also shown below.`
+        : emailed.configured
+          ? `Invite email to ${inv.email} could not be sent - the link is shown below, share it again.`
+          : `Invite link for ${inv.email} is shown below - share it again. (Live email is not connected yet.)`,
+    );
   };
 
   return (
