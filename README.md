@@ -60,7 +60,8 @@ Without env vars the app still builds and runs, but shows a
    `supabase/migrations/0007_admission_fees_uploads.sql` (admission
    form fee test checkout + document uploads), then
    `supabase/migrations/0008_absence_emails.sql` (absence emails to
-   parents - queued in the portal, no live email provider yet), then
+   parents - queued in the portal, sent by Resend when RESEND_API_KEY
+   is set), then
    `supabase/migrations/0009_student_profile_shares.sql` (student
    profile sharing), then
    `supabase/migrations/0010_school_branding_colours.sql` (logo-driven
@@ -89,8 +90,9 @@ Without env vars the app still builds and runs, but shows a
 - **Invites**: generating an invite creates a record with a token and
   a 7-day expiry; the invite link is `/<school-slug>/invite/<token>`
   (or `/invite/<token>` without a slug). The invitee sets a password
-  and logs in. **No email is sent by the app yet** - the Mother Board
-  shows the link and the owner shares it.
+  and logs in. The invite link is emailed to the invitee when live
+  email is connected (Resend, RESEND_API_KEY) - and the Mother Board
+  still shows the link, so the owner can share it by hand as before.
 - **Per-school path URLs**: each school has a short name (slug, e.g.
   `greenfield`) set by the platform owner when the school is created,
   and its own address `digital-schoolverse.vercel.app/greenfield`.
@@ -141,18 +143,19 @@ Without env vars the app still builds and runs, but shows a
   saves a register with a pupil marked Absent (or Late, as a milder
   notice), the portal queues one email notice per linked parent
   (Approved links only) in the `absence_emails` table - pupil,
-  parent, parent email, date, reason, status. No live email provider
-  is connected yet, so no real email is sent: rows are labelled
-  Queued - no live email provider yet and shown in the portal
-  instead (the parent's workspace, the teacher's register page, and
-  the admin Overview log). Parents with no email on record are
-  flagged Unreachable - no email on record in the log, never
+  parent, parent email, date, reason, status. With RESEND_API_KEY set
+  each queued notice is emailed via Resend (POST /api/email) and the
+  row is marked Sent; with no key, no real email is sent: rows are
+  labelled Queued - no live email provider yet and shown in the
+  portal instead (the parent's workspace, the teacher's register
+  page, and the admin Overview log). Parents with no email on record
+  are flagged Unreachable - no email on record in the log, never
   silently skipped. The teacher can add an optional reason per
   Absent / Late pupil, saved on the register row and copied into
   the notice. Re-saving a register updates the notice in place and
   clears still-queued notices for pupils re-marked Present /
-  Excused. The plug-in point for a real sender is `sendAbsenceEmail`
-  in `src/lib/absence-emails.ts` (Resend / SendGrid later).
+  Excused. The sender is `sendAbsenceEmail` in
+  `src/lib/absence-emails.ts` (Resend via POST /api/email).
 - **First owner login**: create the user in Supabase → Authentication
   → Users, then insert their `profiles` row with role
   `platform_owner` in the SQL editor. Full steps in
@@ -184,11 +187,14 @@ Without env vars the app still builds and runs, but shows a
   with a pupil Absent / Late will fail to record the parent notice
   (the register itself still saves, with a note saying the queue
   failed). Run it after 0007, then push + redeploy.
-- **Live email provider for absence emails** - absence notices are
-  queued in the portal only (labelled Queued - no live email
-  provider yet) until a provider such as Resend or SendGrid is
-  connected; the plug-in point is `sendAbsenceEmail` in
-  `src/lib/absence-emails.ts`.
+- **Live email (Resend, free tier)** - absence notices, invite
+  emails, sickbay alerts and the teacher digest send when
+  RESEND_API_KEY is set (see `.env.example` for where to create the
+  key and where to add it in Vercel); without it everything stays
+  in-portal only. Note the free-tier limit: with the default
+  onboarding@resend.dev sender, Resend only delivers to the email
+  address on the Resend account - to email real parents, verify a
+  domain in Resend and set RESEND_FROM to an address on it.
 - **Run migration 0006** in the Supabase SQL editor (see above) -
   until then the register pages show "School not found" (the
   `school_registration_status` RPC does not exist yet), approvals do
