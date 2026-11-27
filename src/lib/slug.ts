@@ -18,6 +18,7 @@ export const RESERVED_SLUGS = new Set([
   "invite",
   "reset-password",
   "mother-board",
+  "owner",
   "api",
   "_next",
   "setup",
@@ -133,6 +134,8 @@ export function isPublicPath(pathname: string): boolean {
   if (segs.length === 0) return false;
   if (segs[0] === "login" || segs[0] === "invite" || segs[0] === "reset-password")
     return true;
+  // Platform-owner code sign-in (migration 0030).
+  if (segs[0] === "owner" && segs[1] === "login") return true;
   if (segs.length >= 2 && (segs[1] === "login" || segs[1] === "invite"))
     return true;
   if (segs.length >= 2 && segs[1] === "register") return true;
