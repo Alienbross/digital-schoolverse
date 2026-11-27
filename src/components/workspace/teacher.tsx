@@ -17,6 +17,7 @@ import {
 import { btnCls, Card, ConfigBanner, inputCls, labelCls, PageHeader } from "@/components/ui";
 import { LockedNotice } from "@/components/pending-banner";
 import ApprovalsList from "@/components/workspace/approvals";
+import ClassRegistrationLinkButton from "@/components/class-registration-link-button";
 import AbsenceNoticesLog from "@/components/workspace/absence-notices";
 import { queueAbsenceNotices } from "@/lib/absence-emails";
 import { setTeacherClassPicks } from "@/lib/registration";
@@ -383,9 +384,12 @@ export default function TeacherWorkspace() {
                 <p className="mt-1 text-sm text-slate-500">{c.stage}{c.arm ? ` · Arm ${c.arm}` : ""} · {pupils.length} pupil{pupils.length === 1 ? "" : "s"}</p>
                 <p className="mt-2 text-sm"><strong>Subjects I teach here:</strong> {subs.filter((s) => mySubjectIds.has(s.id) || isFormTeacher).map((s) => s.name).join(", ") || "-"}</p>
                 <p className="mt-1 text-sm text-slate-500">All subjects in this class: {subs.map((s) => s.name).join(", ") || "None assigned yet"}</p>
-                <div className="mt-3 flex gap-2">
+                <div className="mt-3 flex flex-wrap gap-2">
                   <button className={btnCls} onClick={() => setTab("attendance")}>Take register →</button>
                   <button className="rounded-lg border border-line px-4 py-2 text-sm font-semibold" onClick={() => setTab("scores")}>Enter scores →</button>
+                  {base && (
+                    <ClassRegistrationLinkButton slug={base.slice(1)} classId={c.id} className={c.name} />
+                  )}
                 </div>
                 {pupils.length > 0 && (
                   <ul className="mt-3 space-y-1 text-sm">
