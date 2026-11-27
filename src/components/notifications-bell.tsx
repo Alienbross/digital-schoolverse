@@ -13,9 +13,10 @@ import type { NotificationRow } from "@/lib/types";
 
 /** In-app notifications bell (migration 0006, in-app only - no email
  *  yet). Shows the unread count for the signed-in user; opening the
- *  list marks everything read. Shown to the school admin and to
- *  teachers - the roles that get notified about registrations and
- *  pupil links. */
+ *  list marks everything read. Shown to every signed-in role: the
+ *  admin and teachers get registration and pupil-link notices, while
+ *  parents and pupils get sickbay alerts, homework reminders and
+ *  school news. */
 export default function NotificationsBell() {
   const { user, profile, loading } = useAuth();
   const base = useWorkspaceBase();
@@ -23,12 +24,7 @@ export default function NotificationsBell() {
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  const visible =
-    !!user &&
-    !!profile &&
-    (profile.role === "school_admin" ||
-      profile.role === "teacher" ||
-      profile.role === "platform_owner");
+  const visible = !!user && !!profile;
 
   const load = async () => {
     const rows = await fetchNotifications();
@@ -102,8 +98,8 @@ export default function NotificationsBell() {
             <p className="px-2 py-3 text-sm text-slate-500">Loading…</p>
           ) : notes.length === 0 ? (
             <p className="px-2 py-3 text-sm text-slate-500">
-              No notifications yet. You will be notified here when someone
-              registers or a parent links a pupil.
+              No notifications yet. You will be notified here about
+              school news, homework, sickbay alerts and registrations.
             </p>
           ) : (
             <ul className="max-h-96 space-y-1 overflow-y-auto">
