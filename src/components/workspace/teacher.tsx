@@ -30,6 +30,7 @@ import {
 import TimetableView from "@/components/workspace/timetable-view";
 import MessagesPanel from "@/components/workspace/messages-panel";
 import ComplaintWizard from "@/components/workspace/complaint-wizard";
+import { notifyHomeworkGiven } from "@/lib/homework-reminders";
 
 type Tab =
   | "reminders"
@@ -1127,6 +1128,18 @@ function HomeworkSection({
       due_date: due || null,
       status: "Active",
     });
+    if (!error) {
+      // In-portal notice to the pupils in the class and their
+      // parents (migration 0026 helper, via the notify RPC).
+      await notifyHomeworkGiven({
+        school_id: schoolId,
+        class_id: classId,
+        subject_id: subjectId || null,
+        teacher_id: teacherId,
+        title: title.trim(),
+        due_date: due || null,
+      });
+    }
     setMsg(error ? `Could not set homework: ${error.message}` : "Homework set - pupils in the class will see it in their workspace.");
     setTitle(""); setInstructions(""); setDue("");
     load();
