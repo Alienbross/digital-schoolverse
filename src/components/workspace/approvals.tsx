@@ -205,6 +205,9 @@ export default function ApprovalsList({
                     <p className="mt-1 text-sm">
                       Pupil: <strong>{studentOf(p)?.first_name} {studentOf(p)?.last_name}</strong> ·{" "}
                       {studentOf(p)?.admission_no}
+                      {studentOf(p)?.gender ? ` · ${studentOf(p)?.gender}` : ""}
+                      {studentOf(p)?.date_of_birth ? ` · Born ${new Date(studentOf(p)?.date_of_birth as string).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}` : ""}
+                      {studentOf(p)?.guardian_contact ? ` · Guardian: ${studentOf(p)?.guardian_contact}` : ""}
                     </p>
                   )}
                   {p.role === "parent" && (
