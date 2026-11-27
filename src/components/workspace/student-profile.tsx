@@ -15,6 +15,8 @@ import {
   profileSummaryText,
   type StudentProfileData,
 } from "@/lib/student-profile";
+import { fetchStudentBio, type StudentBio } from "@/lib/student-bio";
+import { BioFieldsList } from "@/components/workspace/student-bio";
 import { DomainRatingsView } from "@/components/workspace/assessments";
 
 /** Student Profile - one pupil's analysed summary for counsellors,
@@ -27,7 +29,11 @@ import { DomainRatingsView } from "@/components/workspace/assessments";
  *  - Student: only themselves.
  *  - Parent: only their own linked children, and only once the
  *    school has shared this profile with them (a share row exists).
- *    Before sharing they see "not shared yet" instead of the data.
+ *    Before sharing they see "not shared yet" instead of the data -
+ *    but the pupil's own bio (club, interest, sport, ambition,
+ *    favourite colour) is shown to the parent either way: it is the
+ *    pupil's own data shared with their parent, not part of the
+ *    gated summary.
  *  - Pending accounts see the pending notice and no profile data.
  *
  *  Sharing: the admin (or owner) shares the plain-language summary
@@ -42,6 +48,7 @@ export default function StudentProfile() {
   const base = useWorkspaceBase();
   const canManage = useCanManage();
   const [data, setData] = useState<StudentProfileData | null>(null);
+  const [bio, setBio] = useState<StudentBio | null>(null);
   const [state, setState] = useState("loading");
   const [denied, setDenied] = useState("");
   const [shares, setShares] = useState<StudentProfileShare[]>([]);
@@ -66,7 +73,10 @@ export default function StudentProfile() {
   useEffect(() => {
     if (authLoading) return;
     (async () => {
-      const d = await loadStudentProfileData(studentId);
+      const [d, bioData] = await Promise.all([
+        loadStudentProfileData(studentId),
+        fetchStudentBio(studentId),
+      ]);
       if (!d) {
         setState("not-found");
         return;
@@ -107,6 +117,7 @@ export default function StudentProfile() {
         }
       }
       setData(d);
+      setBio(bioData);
       // Share history for this pupil (current term first).
       const { data: sh } = await supabase
         .from("student_profile_shares")
@@ -180,6 +191,8 @@ export default function StudentProfile() {
   if (!data || !analysis) return null;
 
   // Parents only see the profile once the school has shared it.
+  // The pupil's own bio is the exception: it is their data shared
+  // with their parent, so it shows here even before sharing.
   if (isParent && !sharedThisTerm) {
     return (
       <div>
@@ -188,7 +201,13 @@ export default function StudentProfile() {
           title={`Student profile - ${data.student.first_name} ${data.student.last_name}`}
           sub="The school has not shared this profile summary with you yet. Once the admin shares it, it will appear here."
         />
-        <Link href={backHref} className="font-semibold text-royal">← Back to my children</Link>
+        <Card>
+          <h2 className="mb-2 font-semibold">About {data.student.first_name} - as filled in by {data.student.first_name}</h2>
+          <BioFieldsList bio={bio?.bio ?? null} classTeacherName={bio?.classTeacherName ?? null} />
+        </Card>
+        <p className="mt-4 text-sm">
+          <Link href={backHref} className="font-semibold text-royal">← Back to my children</Link>
+        </p>
       </div>
     );
   }
@@ -236,6 +255,13 @@ export default function StudentProfile() {
           {new Date(shares.find((s) => s.term_id === (data.term?.id ?? null))?.shared_at ?? "").toLocaleDateString()}.
         </div>
       )}
+
+      {/* The pupil's own bio - shown to everyone who can open this
+          profile, including a parent before the summary is shared. */}
+      <Card>
+        <h2 className="mb-2 font-semibold">About {data.student.first_name} - as filled in by {data.student.first_name}</h2>
+        <BioFieldsList bio={bio?.bio ?? null} classTeacherName={bio?.classTeacherName ?? null} />
+      </Card>
 
       {/* Analysed summary */}
       <div className="grid gap-4 md:grid-cols-3">
