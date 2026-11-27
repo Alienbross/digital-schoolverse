@@ -26,6 +26,7 @@
 // / `error` instead of failing the whole record.
 
 import { supabase } from "@/lib/supabase";
+import { EMAIL_NOT_CONFIGURED, requestEmailSend } from "@/lib/email";
 
 export type SickbayKind = "Sickbay" | "Sent home" | "Emergency";
 
@@ -68,6 +69,37 @@ export function defaultSickbayBody(kind: SickbayKind, pupilName: string): string
 }
 
 /**
+ * PLUG-IN POINT for a live sickbay email - wired to Resend via POST
+ * /api/email (see src/lib/email.ts). The in-portal alert above is
+ * untouched: email is added on top of it, never instead of it. With
+ * no key configured this returns ok: false and nothing is sent.
+ * The SMS plug-in point sendSickbaySms() below is unchanged - no SMS
+ * provider is connected, and no SMS is sent.
+ */
+export async function sendSickbayEmail(args: {
+  parentEmail: string;
+  pupilName: string;
+  kind: SickbayKind;
+  body: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const subject = `${args.kind} alert - ${args.pupilName}`;
+  const text =
+    `${args.body}\n\n` +
+    `Please contact the school office if you need more detail.\n\n` +
+    `Digital SchoolVerse`;
+  const result = await requestEmailSend({
+    kind: "sickbay",
+    to: args.parentEmail.trim(),
+    subject,
+    text,
+  });
+  if (!result.sent) {
+    return { ok: false, error: result.error ?? EMAIL_NOT_CONFIGURED };
+  }
+  return { ok: true };
+}
+
+/**
  * PLUG-IN POINT for a real SMS sender.
  *
  * Today this always returns ok: false - no live SMS provider is
@@ -95,11 +127,14 @@ export async function sendSickbaySms(args: {
 
 /**
  * Record a sickbay / sent-home / emergency event and alert the
- * pupil's linked parents in-portal. Only Approved pupil links are
- * notified (migration 0006: parent-proposed links still Pending,
- * and Rejected links, are never notified). Parents with no login
- * profile get no notification row - there is no recipient to write
- * to - but the event itself is still saved.
+ * pupil's linked parents in-portal, and by email when live email is
+ * connected (sendSickbayEmail() above, Resend via POST /api/email).
+ * Only Approved pupil links are notified (migration 0006:
+ * parent-proposed links still Pending, and Rejected links, are never
+ * notified). Parents with no login profile get no notification row -
+ * there is no recipient to write to - but the event itself is still
+ * saved, and a parent with an email on file still gets the email.
+ * Email never fails the record: a failed send only lowers `emailed`.
  */
 export async function recordSickbayEvent(args: {
   schoolId: string;
@@ -111,6 +146,7 @@ export async function recordSickbayEvent(args: {
   ok: boolean;
   eventId: string | null;
   notified: number;
+  emailed: number;
   error?: string;
 }> {
   const { schoolId, studentId, kind, note, recordedBy } = args;
@@ -126,6 +162,7 @@ export async function recordSickbayEvent(args: {
       ok: false,
       eventId: null,
       notified: 0,
+      emailed: 0,
       error: pupilError?.message ?? "Pupil not found in this school.",
     };
   }
@@ -147,6 +184,7 @@ export async function recordSickbayEvent(args: {
       ok: false,
       eventId: null,
       notified: 0,
+      emailed: 0,
       error: `Could not record the event: ${eventError?.message ?? "unknown error"}`,
     };
   }
@@ -161,18 +199,17 @@ export async function recordSickbayEvent(args: {
     "parent_profile_ids_for_student",
     { p_student_id: studentId }
   );
+  const eventId = (event as { id: string }).id;
   if (recipientError) {
     return {
       ok: true,
-      eventId: (event as { id: string }).id,
+      eventId,
       notified: 0,
+      emailed: 0,
       error: `Event recorded, but the linked parents could not be looked up: ${recipientError.message}`,
     };
   }
   const recipientIds = ((recipientRows as string[] | null) ?? []).filter(Boolean);
-  if (recipientIds.length === 0) {
-    return { ok: true, eventId: (event as { id: string }).id, notified: 0 };
-  }
 
   const title =
     kind === "Sickbay"
@@ -184,27 +221,76 @@ export async function recordSickbayEvent(args: {
 
   // Write via the notify_recipients RPC (migration 0027): a teacher
   // can notify through it, direct inserts are admin-only. A failure
-  // here must not undo the event.
-  const { data: nCount, error: noteError } = await supabase.rpc("notify_recipients", {
-    p_school_id: schoolId,
-    p_recipient_ids: recipientIds,
-    p_kind: "sickbay",
-    p_title: title,
-    p_body: body,
-    p_link: "/parent",
-  });
-  if (noteError) {
-    return {
-      ok: true,
-      eventId: (event as { id: string }).id,
-      notified: 0,
-      error: `Event recorded, but the parent alert could not be written in-portal: ${noteError.message}`,
-    };
+  // here must not undo the event - and must not stop the email below.
+  let notified = 0;
+  let noteErrorMsg: string | null = null;
+  if (recipientIds.length > 0) {
+    const { data: nCount, error: noteError } = await supabase.rpc("notify_recipients", {
+      p_school_id: schoolId,
+      p_recipient_ids: recipientIds,
+      p_kind: "sickbay",
+      p_title: title,
+      p_body: body,
+      p_link: "/parent",
+    });
+    if (noteError) {
+      noteErrorMsg = `Event recorded, but the parent alert could not be written in-portal: ${noteError.message}`;
+    } else {
+      notified = typeof nCount === "number" ? nCount : recipientIds.length;
+    }
   }
+
+  // Email on top of the in-portal alert: linked parents with an
+  // email on file, Approved links only (same rule as absence
+  // emails). Parents without a login profile still get the email -
+  // the in-portal row needs a profile, the email only needs an
+  // address. No key configured means every send returns ok: false
+  // and emailed stays 0 - the event and the in-portal alert are
+  // unaffected. A failed send never fails the record.
+  let emailed = 0;
+  try {
+    const { data: linkRows } = await supabase
+      .from("parent_children")
+      .select("parent_id, status")
+      .eq("student_id", studentId);
+    const parentIds = [
+      ...new Set(
+        ((linkRows as { parent_id: string; status: string | null }[] | null) ?? [])
+          .filter((l) => l.status !== "Pending" && l.status !== "Rejected")
+          .map((l) => l.parent_id),
+      ),
+    ];
+    if (parentIds.length > 0) {
+      const { data: parentRows } = await supabase
+        .from("parents")
+        .select("email")
+        .in("id", parentIds);
+      const emails = [
+        ...new Set(
+          ((parentRows as { email: string | null }[] | null) ?? [])
+            .map((p) => p.email?.trim())
+            .filter((e): e is string => !!e),
+        ),
+      ];
+      for (const parentEmail of emails) {
+        try {
+          const sent = await sendSickbayEmail({ parentEmail, pupilName, kind, body });
+          if (sent.ok) emailed += 1;
+        } catch {
+          // One failed send must not stop the rest.
+        }
+      }
+    }
+  } catch {
+    // Email is a bonus only; the event is the record.
+  }
+
   return {
     ok: true,
-    eventId: (event as { id: string }).id,
-    notified: typeof nCount === "number" ? nCount : recipientIds.length,
+    eventId,
+    notified,
+    emailed,
+    ...(noteErrorMsg ? { error: noteErrorMsg } : {}),
   };
 }
 
