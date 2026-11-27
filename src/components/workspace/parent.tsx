@@ -30,6 +30,12 @@ import { ensureEveningReminders } from "@/lib/homework-reminders";
 import { todayStr } from "@/lib/roles";
 import { fetchChildBios, type StudentBioFields } from "@/lib/student-bio";
 import { BioFieldsList } from "@/components/workspace/student-bio";
+import {
+  AI_LIVE_DRAFT_PREFIX,
+  AI_LIVE_NOTE,
+  fetchAiLive,
+  requestAiDraft,
+} from "@/lib/ai";
 
 type Tab = "children" | "fees" | "messages" | "complaints" | "helper" | "summaries";
 
@@ -770,6 +776,9 @@ function ParentHelperSection({
   const [childId, setChildId] = useState(children[0]?.student.id ?? "");
   const [drafts, setDrafts] = useState<{ id: string; title: string; content: string; created_at: string }[]>([]);
   const [msg, setMsg] = useState("");
+  const [aiLive, setAiLive] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { fetchAiLive().then(setAiLive); }, []);
 
   const load = async () => {
     const { data } = await supabase
@@ -789,21 +798,44 @@ function ParentHelperSection({
 
   const generate = async () => {
     const child = children.find((c) => c.student.id === childId);
-    if (!child) return;
+    if (!child || busy) return;
     const best = [...child.scores].sort((a, b) => b.total - a.total)[0];
     const worst = [...child.scores].sort((a, b) => a.total - b.total)[0];
-    const content = `PLAIN-LANGUAGE PROGRESS - demo draft, no live AI. Built from ${child.student.first_name}'s real scores and attendance this term.\n\n${child.student.first_name} ${child.student.last_name} (${child.className}${term ? `, ${term.session} - ${term.name}` : ""})\n\nOverall: ${child.average !== null ? `averaging ${child.average.toFixed(1)} out of 100 across ${child.scores.length} subject(s).` : "no scores recorded yet this term."}\nAttendance: ${child.attPct !== null ? `${child.attPct}% (${child.attText}).` : "no register days yet."}\n${best ? `Strongest subject: ${best.subject} - ${best.total}/100, ${plainGrade(best.total)}.` : ""}\n${worst && worst !== best ? `Needs the most help: ${worst.subject} - ${worst.total}/100, ${plainGrade(worst.total)}.` : ""}\n\nWhat this means: ${child.average !== null && child.average >= 60 ? "things are going well - keep the routine steady." : child.average !== null ? "there is room to improve - a short daily practice in the weakest subject will help most." : "ask the class teacher what to practise first."}\n\nIf anything here looks wrong, ask the class teacher - the scores on the report card are the final word.`;
-    const { error } = await supabase.from("ai_drafts").insert({
-      school_id: schoolId,
-      kind: "parent_summary",
-      title: `Progress summary: ${child.student.first_name} ${child.student.last_name}`,
-      content,
-      status: "Draft",
-      student_id: child.student.id,
-      class_id: child.student.class_id ?? null,
-    });
-    setMsg(error ? `Could not save: ${error.message}` : "Progress summary saved below.");
-    load();
+    // Demo template, unchanged from before - used when no AI key is
+    // configured, or when live AI fails.
+    const demoContent = `PLAIN-LANGUAGE PROGRESS - demo draft, no live AI. Built from ${child.student.first_name}'s real scores and attendance this term.\n\n${child.student.first_name} ${child.student.last_name} (${child.className}${term ? `, ${term.session} - ${term.name}` : ""})\n\nOverall: ${child.average !== null ? `averaging ${child.average.toFixed(1)} out of 100 across ${child.scores.length} subject(s).` : "no scores recorded yet this term."}\nAttendance: ${child.attPct !== null ? `${child.attPct}% (${child.attText}).` : "no register days yet."}\n${best ? `Strongest subject: ${best.subject} - ${best.total}/100, ${plainGrade(best.total)}.` : ""}\n${worst && worst !== best ? `Needs the most help: ${worst.subject} - ${worst.total}/100, ${plainGrade(worst.total)}.` : ""}\n\nWhat this means: ${child.average !== null && child.average >= 60 ? "things are going well - keep the routine steady." : child.average !== null ? "there is room to improve - a short daily practice in the weakest subject will help most." : "ask the class teacher what to practise first."}\n\nIf anything here looks wrong, ask the class teacher - the scores on the report card are the final word.`;
+    const context = `${child.student.first_name} ${child.student.last_name} (${child.className}${term ? `, ${term.session} - ${term.name}` : ""}). Overall: ${child.average !== null ? `averaging ${child.average.toFixed(1)} out of 100 across ${child.scores.length} subject(s)` : "no scores recorded yet this term"}. Attendance: ${child.attPct !== null ? `${child.attPct}% (${child.attText})` : "no register days yet"}.${best ? ` Strongest subject: ${best.subject} - ${best.total}/100.` : ""}${worst && worst !== best ? ` Needs the most help: ${worst.subject} - ${worst.total}/100.` : ""}`;
+    setBusy(true);
+    try {
+      const ai = await requestAiDraft({
+        kind: "parent_summary",
+        prompt: `Explain ${child.student.first_name}'s progress this term in plain language for their parent.`,
+        context,
+      });
+      const content =
+        ai.demo === false && ai.text
+          ? `${AI_LIVE_DRAFT_PREFIX}\n\n${ai.text}`
+          : demoContent;
+      const { error } = await supabase.from("ai_drafts").insert({
+        school_id: schoolId,
+        kind: "parent_summary",
+        title: `Progress summary: ${child.student.first_name} ${child.student.last_name}`,
+        content,
+        status: "Draft",
+        student_id: child.student.id,
+        class_id: child.student.class_id ?? null,
+      });
+      setMsg(
+        error
+          ? `Could not save: ${error.message}`
+          : ai.demo === false && ai.text === null
+            ? `${ai.error} Demo summary saved below.`
+            : "Progress summary saved below.",
+      );
+      load();
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -811,7 +843,7 @@ function ParentHelperSection({
       <Card>
         <h2 className="mb-1 font-semibold">AI Parent Helper</h2>
         <p className="mb-3 text-sm text-slate-500">
-          Plain-language progress, built from your child&apos;s real scores and attendance. Demo only - no live AI is connected.
+          Plain-language progress, built from your child&apos;s real scores and attendance. {aiLive ? AI_LIVE_NOTE : "Demo only - no live AI is connected."}
         </p>
         <div>
           <label className={labelCls}>Child</label>
@@ -821,7 +853,7 @@ function ParentHelperSection({
             ))}
           </select>
         </div>
-        <button className={`${btnCls} mt-3`} onClick={generate}>Explain my child&apos;s progress</button>
+        <button className={`${btnCls} mt-3`} onClick={generate} disabled={busy}>{busy ? "Explaining..." : "Explain my child's progress"}</button>
         {msg && <p className="mt-3 text-sm font-medium text-royal">{msg}</p>}
       </Card>
       <Card>
