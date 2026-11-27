@@ -10,15 +10,17 @@ import { btnCls, Card, ConfigBanner, inputCls, labelCls, PageHeader } from "@/co
 /** Platform-owner sign-in - no password at all. Step 1: email only.
  *  The app first checks (via the is_platform_owner_email RPC from
  *  migration 0030) that the email belongs to a platform owner, and
- *  only then asks Supabase Auth to send a 6-digit code. Step 2: the
- *  owner types the code, it is verified with verifyOtp, and the
- *  Mother Board loads. School users keep the normal password sign-in
- *  on /login - this page is owner-only. */
+ *  only then asks Supabase Auth to send a sign-in link. Step 2: the
+ *  owner taps the link in the email. The link lands back on this
+ *  page, the Supabase client picks the session up from the URL, and
+ *  the Mother Board loads. No code anywhere - the Free-plan email
+ *  template only carries a link, so the page works with the link
+ *  that already arrives. School users keep the normal password
+ *  sign-in on /login - this page is owner-only. */
 export default function OwnerLogin() {
   const router = useRouter();
   const { user, profile, loading, signOut } = useAuth();
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
   const [step, setStep] = useState<1 | 2>(1);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -37,15 +39,15 @@ export default function OwnerLogin() {
     else setNoProfile(true);
   }, [loading, user, profile, router]);
 
-  const sendCode = async (e?: React.FormEvent) => {
+  const sendLink = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const clean = email.trim().toLowerCase();
     if (!clean) return;
     setBusy(true);
     setMsg("");
     // Owner-only gate: only an email with a platform_owner profile
-    // ever gets a code. Any other email gets the same plain message
-    // and no code is sent.
+    // ever gets a link. Any other email gets the same plain message
+    // and no email is sent.
     const { data: isOwner, error: rpcError } = await supabase.rpc(
       "is_platform_owner_email",
       { p_email: clean },
@@ -56,50 +58,28 @@ export default function OwnerLogin() {
       return;
     }
     if (!isOwner) {
-      setMsg("If this is the owner email, a code has been sent - check your inbox.");
+      setMsg("If this is the owner email, a sign-in link has been sent - check your inbox.");
       setBusy(false);
       return;
     }
     const { error } = await supabase.auth.signInWithOtp({
       email: clean,
-      options: { shouldCreateUser: false },
+      options: {
+        shouldCreateUser: false,
+        // The link comes back here, not to the site root: this page is
+        // public, so the shell never bounces the owner to /login while
+        // the session is being picked up from the link.
+        emailRedirectTo: `${window.location.origin}/owner/login`,
+      },
     });
     if (error) {
-      setMsg(`Could not send a code: ${error.message}`);
+      setMsg(`Could not send a link: ${error.message}`);
       setBusy(false);
       return;
     }
     setStep(2);
-    setMsg("Code sent - check your inbox for the 6-digit code.");
+    setMsg("Link sent - check your inbox and tap the sign-in link.");
     setBusy(false);
-  };
-
-  const verifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const clean = email.trim().toLowerCase();
-    const token = code.trim();
-    if (token.length !== 6) {
-      setMsg("Enter the 6-digit code from your email.");
-      return;
-    }
-    setBusy(true);
-    setMsg("");
-    const { error } = await supabase.auth.verifyOtp({
-      email: clean,
-      token,
-      type: "email",
-    });
-    if (error) {
-      setMsg(
-        "That code did not work - check the 6 digits and try again, or ask for a new code below.",
-      );
-      setBusy(false);
-      return;
-    }
-    // Session is set; the auth context loads the profile (my_profile
-    // fallback included) and the effect above sends the owner onward.
-    setBusy(false);
-    router.refresh();
   };
 
   if (noProfile) {
@@ -127,13 +107,13 @@ export default function OwnerLogin() {
       <ConfigBanner />
       <PageHeader
         title="Platform owner sign-in"
-        sub="No password - enter your email and we send you a 6-digit code."
+        sub="No password - enter your email and we send you a sign-in link."
       />
       {msg && <p className="mb-4 text-sm font-medium text-royal">{msg}</p>}
       <div className="max-w-md">
         <Card>
           {step === 1 ? (
-            <form onSubmit={sendCode} className="space-y-3">
+            <form onSubmit={sendLink} className="space-y-3">
               <div>
                 <label className={labelCls}>Email</label>
                 <input
@@ -146,47 +126,34 @@ export default function OwnerLogin() {
                 />
               </div>
               <button className={btnCls} disabled={busy || !isSupabaseConfigured}>
-                Send me a code
+                Send me a sign-in link
               </button>
             </form>
           ) : (
-            <form onSubmit={verifyCode} className="space-y-3">
-              <div>
-                <label className={labelCls}>6-digit code</label>
-                <input
-                  className={inputCls}
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ""))}
-                  placeholder="123456"
-                  autoComplete="one-time-code"
-                />
-                <p className="mt-1 text-xs text-slate-500">
-                  Sent to {email.trim().toLowerCase()}. Codes expire after a
-                  short while - ask for a new one if yours has expired.
-                </p>
-              </div>
-              <button className={btnCls} disabled={busy || !isSupabaseConfigured}>
-                Sign in with code
-              </button>
+            <div className="space-y-3">
+              <p className="text-sm text-slate-600">
+                Check your inbox at {email.trim().toLowerCase()} and tap the
+                sign-in link. It opens this page signed in, and takes you
+                straight to the Mother Board.
+              </p>
+              <p className="text-xs text-slate-500">
+                Links expire after a short while - ask for a new one if yours
+                has expired.
+              </p>
               <div className="flex items-center gap-4 pt-1">
                 <button
                   type="button"
                   className="text-sm font-semibold text-royal"
-                  onClick={() => sendCode()}
+                  onClick={() => sendLink()}
                   disabled={busy}
                 >
-                  Resend code
+                  Resend link
                 </button>
                 <button
                   type="button"
                   className="text-sm font-semibold text-royal"
                   onClick={() => {
                     setStep(1);
-                    setCode("");
                     setMsg("");
                   }}
                   disabled={busy}
@@ -194,7 +161,7 @@ export default function OwnerLogin() {
                   Use a different email
                 </button>
               </div>
-            </form>
+            </div>
           )}
         </Card>
         <p className="mt-4 text-sm text-slate-500">
