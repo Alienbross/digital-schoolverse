@@ -16,6 +16,12 @@ import ComplaintWizard from "@/components/workspace/complaint-wizard";
 import CbtPlayer from "@/components/workspace/cbt-player";
 import { ensureEveningReminders } from "@/lib/homework-reminders";
 import { todayStr } from "@/lib/roles";
+import {
+  AI_LIVE_DRAFT_PREFIX,
+  AI_LIVE_NOTE,
+  fetchAiLive,
+  requestAiDraft,
+} from "@/lib/ai";
 
 type Tab =
   | "subjects"
@@ -472,6 +478,9 @@ function StudyTutorSection({
   const [question, setQuestion] = useState("");
   const [drafts, setDrafts] = useState<{ id: string; title: string; content: string; created_at: string }[]>([]);
   const [msg, setMsg] = useState("");
+  const [aiLive, setAiLive] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { fetchAiLive().then(setAiLive); }, []);
 
   const load = async () => {
     const { data } = await supabase
@@ -488,21 +497,44 @@ function StudyTutorSection({
 
   const ask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!question.trim()) return;
+    if (!question.trim() || busy) return;
     const subj = subjects.find((s) => s.id === subjectId)?.name ?? "your subject";
-    const content = `STUDY HELP - demo draft, no live AI. Your teacher can check this with you.\n\nYou asked (${subj}): ${question.trim()}\n\nHow to work it out:\n1. Say what the question is asking in your own words.\n2. Write down what you already know about it.\n3. Try one small step - then check it.\n4. If you get stuck, write down exactly where you got stuck and ask your teacher that part.\n\nQuick check for yourself: can you explain the answer to a friend? If not, try step 1 again.`;
-    const { error } = await supabase.from("ai_drafts").insert({
-      school_id: schoolId,
-      kind: "study_help",
-      title: `${subj}: ${question.trim().slice(0, 60)}`,
-      content,
-      status: "Draft",
-      subject_id: subjectId || null,
-      student_id: studentId,
-    });
-    setMsg(error ? `Could not save: ${error.message}` : "Saved below. This is a study guide, not the answer - work through the steps.");
-    setQuestion("");
-    load();
+    // Demo template, unchanged from before - used when no AI key is
+    // configured, or when live AI fails.
+    const demoContent = `STUDY HELP - demo draft, no live AI. Your teacher can check this with you.\n\nYou asked (${subj}): ${question.trim()}\n\nHow to work it out:\n1. Say what the question is asking in your own words.\n2. Write down what you already know about it.\n3. Try one small step - then check it.\n4. If you get stuck, write down exactly where you got stuck and ask your teacher that part.\n\nQuick check for yourself: can you explain the answer to a friend? If not, try step 1 again.`;
+    const asked = question.trim();
+    setBusy(true);
+    try {
+      const ai = await requestAiDraft({
+        kind: "study_help",
+        prompt: asked,
+        context: `Subject: ${subj}. The pupil is stuck on a question and asks: ${asked}`,
+      });
+      const content =
+        ai.demo === false && ai.text
+          ? `${AI_LIVE_DRAFT_PREFIX}\n\nYou asked (${subj}): ${asked}\n\n${ai.text}`
+          : demoContent;
+      const { error } = await supabase.from("ai_drafts").insert({
+        school_id: schoolId,
+        kind: "study_help",
+        title: `${subj}: ${asked.slice(0, 60)}`,
+        content,
+        status: "Draft",
+        subject_id: subjectId || null,
+        student_id: studentId,
+      });
+      setMsg(
+        error
+          ? `Could not save: ${error.message}`
+          : ai.demo === false && ai.text === null
+            ? `${ai.error} Demo study guide saved below.`
+            : "Saved below. This is a study guide, not the answer - work through the steps.",
+      );
+      setQuestion("");
+      load();
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -510,7 +542,7 @@ function StudyTutorSection({
       <Card>
         <h2 className="mb-1 font-semibold">AI Study Tutor</h2>
         <p className="mb-3 text-sm text-slate-500">
-          Demo only - no live AI is connected. It gives you steps to work a question out yourself, not the answer, and your teacher can see what you asked.
+          {aiLive ? AI_LIVE_NOTE : "Demo only - no live AI is connected."} It gives you steps to work a question out yourself, not the answer, and your teacher can see what you asked.
         </p>
         <form onSubmit={ask} className="space-y-3">
           <div>
@@ -523,7 +555,7 @@ function StudyTutorSection({
             <label className={labelCls}>What are you stuck on?</label>
             <textarea className={inputCls} rows={3} value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="e.g. I don't understand how to add fractions with different denominators" />
           </div>
-          <button className={btnCls}>Get study help</button>
+          <button className={btnCls} disabled={busy}>{busy ? "Thinking..." : "Get study help"}</button>
         </form>
         {msg && <p className="mt-3 text-sm font-medium text-royal">{msg}</p>}
       </Card>
