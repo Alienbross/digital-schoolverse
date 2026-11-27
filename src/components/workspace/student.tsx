@@ -14,6 +14,8 @@ import TimetableView from "@/components/workspace/timetable-view";
 import MessagesPanel from "@/components/workspace/messages-panel";
 import ComplaintWizard from "@/components/workspace/complaint-wizard";
 import CbtPlayer from "@/components/workspace/cbt-player";
+import { ensureEveningReminders } from "@/lib/homework-reminders";
+import { todayStr } from "@/lib/roles";
 
 type Tab =
   | "subjects"
@@ -95,6 +97,16 @@ export default function StudentWorkspace() {
 
   useEffect(() => {
     if (isSupabaseConfigured && !authLoading) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, schoolId]);
+
+  // Evening homework reminder (migration 0026): there is no
+  // background scheduler in this build, so the check runs when the
+  // pupil opens their workspace. It only writes on school days, only
+  // for pupils with 4+ tasks today, and only once per pupil per day.
+  useEffect(() => {
+    if (!schoolId || authLoading) return;
+    ensureEveningReminders(schoolId, todayStr()).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, schoolId]);
 
