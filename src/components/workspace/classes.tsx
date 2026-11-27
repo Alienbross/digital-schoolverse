@@ -12,6 +12,7 @@ import {
   labelCls,
   PageHeader,
 } from "@/components/ui";
+import ClassRegistrationLinkButton from "@/components/class-registration-link-button";
 
 export default function Classes() {
   const { schoolId, profile, loading: authLoading } = useAuth();
@@ -136,14 +137,27 @@ export default function Classes() {
           </Card>
           <Card>
             <h2 className="mb-3 font-semibold">Classes ({classes.length})</h2>
+            <p className="mb-3 text-xs text-slate-500">
+              Copy a class registration link and share it with a new pupil
+              who is not in the uploaded file - they register straight into
+              that class and wait for approval. The link only works while
+              student registration is open (School Setup).
+            </p>
             <ul className="space-y-2 text-sm">
               {classes.map((c) => (
                 <li key={c.id} className="rounded-lg bg-mist px-3 py-2">
-                  <strong>{c.name}</strong> · {c.stage}
-                  <span className="block text-xs text-slate-500">
-                    {branchNameOf(c.branch_id)} · Teacher: {teacherNameOf(c.class_teacher_id)}
-                    {c.capacity ? ` · Capacity ${c.capacity}` : ""}
-                  </span>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <strong>{c.name}</strong> · {c.stage}
+                      <span className="block text-xs text-slate-500">
+                        {branchNameOf(c.branch_id)} · Teacher: {teacherNameOf(c.class_teacher_id)}
+                        {c.capacity ? ` · Capacity ${c.capacity}` : ""}
+                      </span>
+                    </div>
+                    {school?.slug && (
+                      <ClassRegistrationLinkButton slug={school.slug} classId={c.id} className={c.name} />
+                    )}
+                  </div>
                 </li>
               ))}
               {classes.length === 0 && <li className="text-slate-400">No classes yet.</li>}
