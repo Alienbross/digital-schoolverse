@@ -25,6 +25,7 @@ import TimetableView from "@/components/workspace/timetable-view";
 import AbsenceNoticesLog from "@/components/workspace/absence-notices";
 import MessagesPanel from "@/components/workspace/messages-panel";
 import ComplaintWizard from "@/components/workspace/complaint-wizard";
+import { GameAccessControl } from "@/components/workspace/games";
 
 type Tab = "children" | "fees" | "messages" | "complaints" | "helper" | "summaries";
 
@@ -485,6 +486,14 @@ export default function ParentWorkspace() {
                   <strong>Fees balance:</strong> ₦{(c.bills - c.paid - c.onlinePaid).toLocaleString()}
                 </p>
               </div>
+              {!isPreview && me && schoolId && (
+                <GameAccessControl
+                  schoolId={schoolId}
+                  parentId={me.id}
+                  studentId={c.student.id}
+                  studentName={`${c.student.first_name} ${c.student.last_name}`}
+                />
+              )}
               <h3 className="mb-2 mt-4 text-sm font-semibold">Results this term</h3>
               {c.scores.length === 0 ? (
                 <p className="text-sm text-slate-500">No scores yet this term.</p>
