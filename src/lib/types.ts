@@ -151,6 +151,9 @@ export type Student = {
   last_name: string;
   gender: string | null;
   date_of_birth: string | null;
+  // Guardian phone or email given at class-link registration
+  // (migration 0031). Null for pupils from the file upload.
+  guardian_contact?: string | null;
   created_at: string;
 };
 
@@ -288,6 +291,22 @@ export type PupilMatch = {
   last_name: string;
   class_id: string | null;
   class_name: string | null;
+};
+
+// Per-class registration link (migration 0031): the public lookup
+// for /<slug>/register/class/<class-id>. Returns the school branding,
+// that ONE class only, and whether student registration is open -
+// never the school's other classes.
+export type ClassRegistrationLink = {
+  school: {
+    id: string;
+    slug: string;
+    name: string;
+    motto: string | null;
+    logo_url: string | null;
+  };
+  class: RegistrationClass;
+  student_open: boolean;
 };
 
 export type NotificationRow = {
