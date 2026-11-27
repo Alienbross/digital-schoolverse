@@ -5,22 +5,22 @@
 // that pupil into `absence_emails` -> the parent sees the notice in
 // their workspace and the admin / teacher see it in the absence log.
 //
-// No live email provider is connected yet, so nothing here sends a
-// real email. New rows are labelled 'Queued - no live email provider
-// yet' (or 'Unreachable - no email on record' when the parent has no
-// email on file) and are shown in the portal instead. This matches
-// how the portal already handles SMS test sends and the fee test
-// checkout: record it honestly, never claim a real message left the
-// portal.
+// Live email is connected via Resend (POST /api/email, key in the
+// RESEND_API_KEY env var). When a register is saved, queueAbsenceNotices()
+// writes the rows below and then sends each one with an email on file
+// via sendAbsenceEmail(), marking it 'Sent' with provider 'Resend'.
+// With no key configured, nothing is sent and rows stay labelled
+// 'Queued - no live email provider yet' (or 'Unreachable - no email on
+// record' when the parent has no email on file) and are shown in the
+// portal instead. This matches how the portal already handles SMS test
+// sends and the fee test checkout: record it honestly, never claim a
+// real message left the portal.
 //
-// Plug-in point for a real sender: sendAbsenceEmail() below. When a
-// provider such as Resend or SendGrid is connected, replace its body
-// with the provider call (to row.parent_email, row.subject,
-// row.body), then update the row to status 'Sent' with sent_at and
-// provider set. No keys belong in this file - the provider key lives
-// in the server env / Supabase secrets, never in code or chat.
+// Plug-in point: sendAbsenceEmail() below. No keys belong in this file
+// - the provider key lives in the server env, never in code or chat.
 
 import { supabase } from "@/lib/supabase";
+import { EMAIL_NOT_CONFIGURED, requestEmailSend } from "@/lib/email";
 import type { AbsenceEmailRow, Parent, Student } from "@/lib/types";
 
 export const ABSENCE_EMAIL_QUEUED = "Queued - no live email provider yet";
@@ -65,27 +65,48 @@ export function buildAbsenceEmail(args: {
 }
 
 /**
- * PLUG-IN POINT for a real email sender.
+ * PLUG-IN POINT for a real email sender - now wired to Resend via
+ * POST /api/email (see src/lib/email.ts). The key never reaches the
+ * browser: this function posts the row to the server route, which
+ * sends it with RESEND_API_KEY.
  *
- * Today this always returns ok: false - no live email provider is
- * connected, so no email is sent and the row stays Queued. When a
- * provider (Resend / SendGrid) is connected:
- *   1. Send row.subject + row.body to row.parent_email via the
- *      provider (server-side call with the provider key from env).
- *   2. On success, update the row: status 'Sent', sent_at now,
- *      provider e.g. 'Resend'.
- *   3. On failure, leave the row Queued and return the error.
- * Do NOT invent keys or connect a provider from this file.
+ *   1. No key configured: returns ok: false and the row stays Queued
+ *      - in-portal-only behaviour, exactly as before.
+ *   2. On success, updates the row: status 'Sent', sent_at now,
+ *      provider 'Resend'.
+ *   3. On failure, leaves the row Queued and returns the error.
+ * A row with no parent email is never sent (Unreachable).
  */
 export async function sendAbsenceEmail(
   row: AbsenceEmailRow,
 ): Promise<{ ok: boolean; error?: string }> {
-  void row;
-  return {
-    ok: false,
-    error:
-      "No live email provider is connected yet - the notice stays queued in the portal.",
-  };
+  if (!row.parent_email?.trim()) {
+    return { ok: false, error: "No email on record for this parent." };
+  }
+  const result = await requestEmailSend({
+    kind: "absence",
+    to: row.parent_email.trim(),
+    subject: row.subject,
+    text: row.body,
+  });
+  if (!result.sent) {
+    return { ok: false, error: result.error ?? EMAIL_NOT_CONFIGURED };
+  }
+  const { error } = await supabase
+    .from("absence_emails")
+    .update({
+      status: ABSENCE_EMAIL_SENT,
+      sent_at: new Date().toISOString(),
+      provider: "Resend",
+    })
+    .eq("id", row.id);
+  if (error) {
+    // The email left the portal, but the row could not be marked
+    // Sent - report it so a re-save does not send it twice without
+    // anyone knowing. The register save itself is unaffected.
+    return { ok: false, error: `Email sent, but the log could not be updated: ${error.message}` };
+  }
+  return { ok: true };
 }
 
 /**
@@ -230,6 +251,32 @@ export async function queueAbsenceNotices(args: {
     .upsert(rows, { onConflict: "student_id,parent_id,record_date,kind" });
   if (error) {
     return { queued: 0, late: 0, unreachable: 0, cleared, error: `Could not queue absence emails: ${error.message}` };
+  }
+
+  // Best-effort live send: every row just queued for this register
+  // that has a parent email is sent via sendAbsenceEmail() above.
+  // No key configured means every send returns ok: false and the
+  // rows simply stay Queued - the register save is unaffected, and
+  // a failed send never fails the save. Rows already Sent are never
+  // re-sent (the sentKeys guard above, plus the status filter here).
+  try {
+    const { data: queuedRows } = await supabase
+      .from("absence_emails")
+      .select("*")
+      .eq("school_id", schoolId)
+      .eq("record_date", recordDate)
+      .in("student_id", studentIds)
+      .eq("status", ABSENCE_EMAIL_QUEUED)
+      .not("parent_email", "is", null);
+    for (const r of (queuedRows as AbsenceEmailRow[] | null) ?? []) {
+      try {
+        await sendAbsenceEmail(r);
+      } catch {
+        // One failed send must not stop the rest.
+      }
+    }
+  } catch {
+    // Sending is a bonus only; the queued rows are the record.
   }
 
   // Best-effort in-app notification for linked parents with a login.
