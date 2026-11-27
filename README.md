@@ -228,3 +228,4 @@ Without env vars the app still builds and runs, but shows a
 <!-- Redeploy trigger: owner login fixes (migration 0013, recovery redirect) -->
 
 <!-- Trigger redeploy: new features voting, news, profiles, bio, sickbay, summaries, reminders (migrations 0020-0027) -->
+<!-- Trigger redeploy: sickbay parent alert fix (migration 0029) and student bio to parents -->
