@@ -315,6 +315,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
             Go to sign in →
           </Link>
         </p>
+        <p className="mt-2 text-sm text-slate-500">
+          Platform owner?{" "}
+          <Link href="/owner/login" className="font-semibold text-royal">
+            Sign in with a code →
+          </Link>
+        </p>
       </main>
     );
   }
