@@ -9,6 +9,7 @@
 
 import { supabase } from "@/lib/supabase";
 import type {
+  ClassRegistrationLink,
   NotificationRow,
   ParentChild,
   Profile,
@@ -46,6 +47,11 @@ export type RegistrationInput = {
   /** Classes (and subjects) a teacher picked themself (migration
    *  0011): [{class_id, subject_id?}]. */
   classPicks?: { class_id: string; subject_id?: string | null }[];
+  /** New-pupil details from a class registration link (migration
+   *  0031): stored on the pupil row on the manual path only. */
+  dateOfBirth?: string | null;
+  gender?: string | null;
+  guardianContact?: string | null;
 };
 
 /** The existing teacher permission set (migration 0011): the
@@ -91,6 +97,35 @@ export async function fetchRegistrationStatus(
   if (error || !data) return null;
   const row = data as { ok?: boolean } & RegistrationStatus;
   return row.ok ? row : null;
+}
+
+/** Public class-link lookup for a school slug + class id (migration
+ *  0031): school branding, that ONE class, and whether student
+ *  registration is open. Works signed out. Returns null for a wrong
+ *  slug, a wrong class id, or a class from another school - so the
+ *  link page never leaks other classes. */
+export async function fetchClassRegistrationLink(
+  slug: string,
+  classId: string,
+): Promise<ClassRegistrationLink | null> {
+  const { data, error } = await supabase.rpc("school_class_for_link", {
+    p_slug: slug,
+    p_class_id: classId,
+  });
+  if (error || !data) return null;
+  const row = data as { ok?: boolean } & ClassRegistrationLink;
+  return row.ok ? row : null;
+}
+
+/** The shareable registration link for one class. The class id is
+ *  itself the token (a random uuid): only someone with the link can
+ *  open it, and the page shows that class only. */
+export function classRegistrationLink(
+  origin: string,
+  slug: string,
+  classId: string,
+): string {
+  return `${origin}/${slug}/register/class/${classId}`;
 }
 
 /** Pupil lookup by admission number (parent pairing). */
@@ -141,6 +176,9 @@ export async function registerSelf(
     p_pupils: (input.pupils ?? []) as unknown as Record<string, unknown>[],
     p_student_id: input.studentId ?? null,
     p_class_picks: (input.classPicks ?? []) as unknown as Record<string, unknown>[],
+    p_date_of_birth: input.dateOfBirth ?? null,
+    p_gender: input.gender ?? null,
+    p_guardian_contact: input.guardianContact ?? null,
   });
 }
 
