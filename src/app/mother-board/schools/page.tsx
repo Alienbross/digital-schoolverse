@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
-import { createInvite, inviteLink } from "@/lib/invites";
+import { createInvite, inviteLink, sendInviteEmail } from "@/lib/invites";
 import { schoolPath, slugify, slugProblem } from "@/lib/slug";
 import type { School } from "@/lib/types";
 import { schoolCounts } from "@/lib/mother-board";
@@ -105,8 +105,19 @@ export default function MotherBoardSchools() {
         createdBy: user?.id ?? null,
       });
       if (res.invite) {
-        setInviteUrl(inviteLink(res.invite.token, school.slug));
-        note += " Admin invite created - share the link below.";
+        const link = inviteLink(res.invite.token, school.slug);
+        setInviteUrl(link);
+        // Live email on top of the link: with no key configured this
+        // sends nothing and the link below is shared by hand.
+        const emailed = await sendInviteEmail({
+          email: adminEmail.trim(),
+          schoolName: school.name,
+          role: "school_admin",
+          link,
+        });
+        note += emailed.sent
+          ? " Admin invite created - invite email sent, and the link is shown below."
+          : " Admin invite created - share the link below.";
       } else {
         note += ` But the admin invite failed: ${res.error}`;
       }
