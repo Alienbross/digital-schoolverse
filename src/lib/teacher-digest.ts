@@ -1,18 +1,17 @@
-// Plug-in point for a daily teacher-reminder digest email.
-//
-// Nothing in this file sends a real email yet - there is no live
-// email provider connected. When one is connected (Resend or
-// SendGrid), replace the body of sendTeacherDigestEmail() with the
-// provider call (to teacher.email, subject + plain-text body built
-// from the reminders list), then log the send. No keys belong in
-// this file - the provider key lives in the server env / Supabase
-// secrets, never in code or chat.
+// Plug-in point for a daily teacher-reminder digest email - now
+// wired to Resend via POST /api/email (see src/lib/email.ts). The
+// key never reaches the browser. With no key configured the route
+// answers { sent: false, configured: false } and this returns
+// sent: false with a plain message - the in-app reminders are
+// unaffected. No keys belong in this file - the provider key lives
+// in the server env, never in code or chat.
 //
 // Same shape as the absence-email plug-in point in
 // src/lib/absence-emails.ts.
 
 import type { TeacherReminder } from "@/lib/teacher-reminders";
 import { REMINDER_KIND_LABELS, REMINDER_URGENCY_LABELS } from "@/lib/teacher-reminders";
+import { EMAIL_NOT_CONFIGURED, requestEmailSend } from "@/lib/email";
 
 /** Build the subject + plain-text body of a teacher's daily digest
  *  from the reminders list. Pure - safe to call anywhere. */
@@ -43,19 +42,26 @@ export function buildTeacherDigest(args: {
   return { subject, body };
 }
 
-/** Send one teacher's daily digest email. Not wired to any provider
- *  yet - it throws a clear error instead of pretending to send. */
+/** Send one teacher's daily digest email via Resend (POST /api/email).
+ *  Returns sent: false with a plain message when no key is configured
+ *  or the provider fails - never throws. There is no scheduler yet:
+ *  the teacher sends today's digest from the Reminders tab. */
 export async function sendTeacherDigestEmail(args: {
   teacherEmail: string;
   teacherName: string;
   schoolName: string;
   reminders: TeacherReminder[];
-}): Promise<{ sent: boolean; error: string | null }> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+}): Promise<{ sent: boolean; configured: boolean; error: string | null }> {
   const { subject, body } = buildTeacherDigest(args);
+  const result = await requestEmailSend({
+    kind: "digest",
+    to: args.teacherEmail.trim(),
+    subject,
+    text: body,
+  });
   return {
-    sent: false,
-    error:
-      "No live email provider is connected yet - connect Resend or SendGrid and replace sendTeacherDigestEmail() with the provider call.",
+    sent: result.sent,
+    configured: result.configured,
+    error: result.sent ? null : (result.error ?? EMAIL_NOT_CONFIGURED),
   };
 }
