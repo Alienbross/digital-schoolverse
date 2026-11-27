@@ -43,16 +43,19 @@ const MB_NAV = [
 // Board nav above.
 const TEACHER_NAV = [
   { href: "/teacher", label: "Teacher workspace" },
+  { href: "/games", label: "Games" },
   { href: "/plan", label: "Plan & Roadmap" },
 ];
 
 const STUDENT_NAV = [
   { href: "/student", label: "Student workspace" },
+  { href: "/games", label: "Games" },
   { href: "/plan", label: "Plan & Roadmap" },
 ];
 
 const PARENT_NAV = [
   { href: "/parent", label: "Parent workspace" },
+  { href: "/games", label: "Games" },
   { href: "/plan", label: "Plan & Roadmap" },
 ];
 
