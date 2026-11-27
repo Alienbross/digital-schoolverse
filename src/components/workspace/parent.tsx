@@ -26,6 +26,8 @@ import AbsenceNoticesLog from "@/components/workspace/absence-notices";
 import MessagesPanel from "@/components/workspace/messages-panel";
 import ComplaintWizard from "@/components/workspace/complaint-wizard";
 import { GameAccessControl } from "@/components/workspace/games";
+import { ensureEveningReminders } from "@/lib/homework-reminders";
+import { todayStr } from "@/lib/roles";
 
 type Tab = "children" | "fees" | "messages" | "complaints" | "helper" | "summaries";
 
@@ -104,6 +106,16 @@ export default function ParentWorkspace() {
 
   useEffect(() => {
     if (isSupabaseConfigured && !authLoading) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, schoolId]);
+
+  // Evening homework reminder (migration 0026): no background
+  // scheduler in this build, so the check runs when the parent opens
+  // their workspace. School days only, 4+ tasks, once per pupil per
+  // day - see ensureEveningReminders.
+  useEffect(() => {
+    if (!schoolId || authLoading) return;
+    ensureEveningReminders(schoolId, todayStr()).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, schoolId]);
 
