@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
-import { createInvite, inviteLink } from "@/lib/invites";
+import { createInvite, inviteLink, sendInviteEmail } from "@/lib/invites";
 import { schoolPath, slugify, slugProblem } from "@/lib/slug";
 import type { Parent, Role, School, SchoolInvite, Student, Teacher } from "@/lib/types";
 import { schoolCounts } from "@/lib/mother-board";
@@ -105,8 +105,21 @@ export default function SchoolControl() {
       setBusy(false);
       return;
     }
-    setInviteUrl(inviteLink(res.invite.token, school.slug));
-    setMsg(`Login invite created for ${email.trim()} (${role.replace("_", " ")}). Share the link below.`);
+    const link = inviteLink(res.invite.token, school.slug);
+    setInviteUrl(link);
+    // Live email on top of the link: with no key configured this
+    // sends nothing and the link below is shared by hand, as before.
+    const emailed = await sendInviteEmail({
+      email: email.trim(),
+      schoolName: school.name,
+      role,
+      link,
+    });
+    setMsg(
+      emailed.sent
+        ? `Login invite created for ${email.trim()} (${role.replace("_", " ")}). Invite email sent - the link is also shown below.`
+        : `Login invite created for ${email.trim()} (${role.replace("_", " ")}). Share the link below.`,
+    );
     setEmail("");
     setLinkId("");
     setBusy(false);
