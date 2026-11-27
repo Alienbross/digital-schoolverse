@@ -225,6 +225,12 @@ export default function Login({ schoolSlug }: { schoolSlug?: string }) {
               The reset link goes to /reset-password on this site.
             </p>
           )}
+          <p className="mt-3 text-sm text-slate-500">
+            Platform owner?{" "}
+            <Link href="/owner/login" className="font-semibold text-royal">
+              Sign in with a code →
+            </Link>
+          </p>
         </Card>
         <p className="mt-4 text-sm text-slate-500">
           No account yet?{" "}
