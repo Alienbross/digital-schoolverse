@@ -17,7 +17,12 @@
 // the platform owner or the school admin (migration 0006). Parent
 // alerts go through the notify_recipients RPC (migration 0027),
 // which any same-school staff member can call, so a teacher's alert
-// reaches the parent too. A failure is still reported in `notified`
+// reaches the parent too. The linked-parent lookup also runs past
+// RLS: `profiles` only lets a user read their own row ("profiles
+// read own or owner", migration 0002), so a direct client-side
+// lookup of other parents' profile rows returns nothing - the
+// parent_profile_ids_for_student RPC (migration 0029) resolves
+// them instead. A failure is still reported in `notified`
 // / `error` instead of failing the whole record.
 
 import { supabase } from "@/lib/supabase";
@@ -147,28 +152,26 @@ export async function recordSickbayEvent(args: {
   }
 
   // Linked parents, Approved links only (same rule as absence emails).
-  const { data: linkRows } = await supabase
-    .from("parent_children")
-    .select("parent_id, status")
-    .eq("student_id", studentId);
-  const parentIds = [
-    ...new Set(
-      ((linkRows as { parent_id: string; status: string | null }[] | null) ?? [])
-        .filter((l) => l.status !== "Pending" && l.status !== "Rejected")
-        .map((l) => l.parent_id),
-    ),
-  ];
-  if (parentIds.length === 0) {
-    return { ok: true, eventId: (event as { id: string }).id, notified: 0 };
+  // Resolved inside the parent_profile_ids_for_student RPC
+  // (migration 0029): a direct client-side read of `profiles`
+  // returns nothing for anyone but the signed-in user, because the
+  // profiles table only lets a user read their own row - that is
+  // why the alert used to find "no linked parent with a login".
+  const { data: recipientRows, error: recipientError } = await supabase.rpc(
+    "parent_profile_ids_for_student",
+    { p_student_id: studentId }
+  );
+  if (recipientError) {
+    return {
+      ok: true,
+      eventId: (event as { id: string }).id,
+      notified: 0,
+      error: `Event recorded, but the linked parents could not be looked up: ${recipientError.message}`,
+    };
   }
-
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, parent_id")
-    .in("parent_id", parentIds);
-  const profileByParent = new Map<string, string>();
-  for (const p of (profiles as { id: string; parent_id: string | null }[] | null) ?? []) {
-    if (p.parent_id) profileByParent.set(p.parent_id, p.id);
+  const recipientIds = ((recipientRows as string[] | null) ?? []).filter(Boolean);
+  if (recipientIds.length === 0) {
+    return { ok: true, eventId: (event as { id: string }).id, notified: 0 };
   }
 
   const title =
@@ -178,12 +181,6 @@ export async function recordSickbayEvent(args: {
         ? `Sent home: ${pupilName}`
         : `Emergency alert: ${pupilName}`;
   const body = note?.trim() ? note.trim() : defaultSickbayBody(kind, pupilName);
-  const recipientIds = parentIds
-    .map((parentId) => profileByParent.get(parentId))
-    .filter((recipient): recipient is string => Boolean(recipient));
-  if (recipientIds.length === 0) {
-    return { ok: true, eventId: (event as { id: string }).id, notified: 0 };
-  }
 
   // Write via the notify_recipients RPC (migration 0027): a teacher
   // can notify through it, direct inserts are admin-only. A failure
