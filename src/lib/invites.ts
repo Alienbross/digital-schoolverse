@@ -1,12 +1,14 @@
 import { supabase } from "@/lib/supabase";
 import { PENDING_INVITE_KEY } from "@/lib/auth";
+import { EMAIL_NOT_CONFIGURED, requestEmailSend } from "@/lib/email";
 import type { Role, SchoolInvite } from "@/lib/types";
 
-/** An invite link is just the site URL + the token. No email is sent by
- *  the app yet - the Mother Board shows this link and the owner shares
- *  it (WhatsApp, email, SMS). Live email sending plugs in here later:
- *  send this link from the server (Supabase Edge Function / Resend /
- *  Termii) instead of only displaying it. */
+/** An invite link is just the site URL + the token. The Mother Board
+ *  shows this link and the owner can still share it by hand
+ *  (WhatsApp, email, SMS) exactly as before. Live email sending
+ *  plugs in here too: sendInviteEmail() below sends this link from
+ *  the server (POST /api/email, Resend) when a key is configured,
+ *  and the link itself keeps working either way. */
 export function inviteLink(token: string, slug?: string | null) {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "";
@@ -22,6 +24,38 @@ export function newInviteToken() {
     return crypto.randomUUID();
   }
   return `inv-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Email an invite link to the invitee, via Resend (POST /api/email).
+ *  The link itself is unchanged - it is still shown on screen to
+ *  share by hand. With no key configured this returns sent: false
+ *  and nothing is sent; the caller keeps showing the link instead.
+ *  Never throws. */
+export async function sendInviteEmail(args: {
+  email: string;
+  schoolName: string;
+  role: Role;
+  link: string;
+}): Promise<{ sent: boolean; configured: boolean; error: string | null }> {
+  const roleLabel = args.role.replace("_", " ");
+  const subject = `Your Digital SchoolVerse invite - ${args.schoolName}`;
+  const text =
+    `Hello,\n\n` +
+    `You have been invited to join ${args.schoolName} on Digital SchoolVerse as ${roleLabel}.\n\n` +
+    `Open this link to accept the invite and set your password:\n${args.link}\n\n` +
+    `The invite lasts 7 days. If you were not expecting this, you can ignore it.\n\n` +
+    `Digital SchoolVerse`;
+  const result = await requestEmailSend({
+    kind: "invite",
+    to: args.email.trim(),
+    subject,
+    text,
+  });
+  return {
+    sent: result.sent,
+    configured: result.configured,
+    error: result.sent ? null : (result.error ?? EMAIL_NOT_CONFIGURED),
+  };
 }
 
 export async function fetchInvite(token: string) {
