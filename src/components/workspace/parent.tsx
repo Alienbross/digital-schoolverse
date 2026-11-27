@@ -28,6 +28,8 @@ import ComplaintWizard from "@/components/workspace/complaint-wizard";
 import { GameAccessControl } from "@/components/workspace/games";
 import { ensureEveningReminders } from "@/lib/homework-reminders";
 import { todayStr } from "@/lib/roles";
+import { fetchChildBios, type StudentBioFields } from "@/lib/student-bio";
+import { BioFieldsList } from "@/components/workspace/student-bio";
 
 type Tab = "children" | "fees" | "messages" | "complaints" | "helper" | "summaries";
 
@@ -43,6 +45,10 @@ const TABS: { id: Tab; label: string }[] = [
 type ChildData = {
   student: Student;
   className: string;
+  /** The pupil's own bio, as they filled it in - shown to the
+   *  parent here, not gated behind the profile-share step. */
+  bio: StudentBioFields | null;
+  classTeacherName: string | null;
   scores: { subject: string; total: number; grade: string }[];
   average: number | null;
   attPct: number | null;
@@ -136,8 +142,13 @@ export default function ParentWorkspace() {
       }
       const { data: st } = await supabase.from("students").select("*").in("id", ids).order("first_name");
       const pupils = (st as Student[] | null) ?? [];
+      // The pupils' bios, as they filled them in themselves
+      // (migration 0023) - shown to the parent on each child card.
+      const bios = await fetchChildBios(parentId);
+      const bioByStudent = new Map(bios.map((b) => [b.studentId, b]));
       const built: ChildData[] = await Promise.all(pupils.map(async (pupil) => {
         const className = classes.find((c) => c.id === pupil.class_id)?.name ?? "-";
+        const childBio = bioByStudent.get(pupil.id);
         let scores: ChildData["scores"] = [];
         let average: number | null = null;
         let attPct: number | null = null;
@@ -173,6 +184,8 @@ export default function ParentWorkspace() {
         return {
           student: pupil,
           className,
+          bio: childBio?.bio ?? null,
+          classTeacherName: childBio?.classTeacherName ?? null,
           scores,
           average,
           attPct,
@@ -506,6 +519,10 @@ export default function ParentWorkspace() {
                   studentName={`${c.student.first_name} ${c.student.last_name}`}
                 />
               )}
+              <h3 className="mb-2 mt-4 text-sm font-semibold">About {c.student.first_name} - as filled in by {c.student.first_name}</h3>
+              <div className="rounded-lg bg-mist px-3 py-2">
+                <BioFieldsList bio={c.bio} classTeacherName={c.classTeacherName} />
+              </div>
               <h3 className="mb-2 mt-4 text-sm font-semibold">Results this term</h3>
               {c.scores.length === 0 ? (
                 <p className="text-sm text-slate-500">No scores yet this term.</p>
