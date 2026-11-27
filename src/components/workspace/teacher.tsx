@@ -32,6 +32,12 @@ import TimetableView from "@/components/workspace/timetable-view";
 import MessagesPanel from "@/components/workspace/messages-panel";
 import ComplaintWizard from "@/components/workspace/complaint-wizard";
 import { notifyHomeworkGiven } from "@/lib/homework-reminders";
+import {
+  AI_LIVE_DRAFT_PREFIX,
+  AI_LIVE_NOTE,
+  fetchAiLive,
+  requestAiDraft,
+} from "@/lib/ai";
 
 type Tab =
   | "reminders"
@@ -1415,8 +1421,12 @@ function AiAssistantSection({
   const [count, setCount] = useState("5");
   const [drafts, setDrafts] = useState<AiDraft[]>([]);
   const [msg, setMsg] = useState("");
+  const [aiLive, setAiLive] = useState(false);
+  const [busy, setBusy] = useState(false);
   const subjects = subjectsOf(classId);
   const pupils = pupilsOf(classId);
+
+  useEffect(() => { fetchAiLive().then(setAiLive); }, []);
 
   const load = async () => {
     const { data } = await supabase
@@ -1455,21 +1465,35 @@ function AiAssistantSection({
     load();
   };
 
+  // Each tool builds its demo template (unchanged from before) plus the
+  // prompt sent to live AI. The live reply replaces the template only
+  // when the server has a key and the provider answers; otherwise the
+  // demo draft is saved exactly as before.
   const generate = async () => {
+    if (busy) return;
     const subj = subjectName(subjectId);
     const cls = className(classId);
+    let title = "";
+    let demoContent = "";
+    let prompt = "";
+    let context = "";
+    let studentId: string | null = null;
     if (tool === "lesson_notes") {
       if (!topic.trim()) { setMsg("Enter a topic first."); return; }
-      await saveDraft("lesson_notes", `Lesson outline: ${topic.trim()} (${cls} - ${subj})`,
-        `DRAFT - ${AI_NOTE}\n\nLesson: ${topic.trim()} (${cls}, ${subj})\n\nObjectives:\n- Pupils can explain ${topic.trim()} in their own words.\n- Pupils can answer questions on ${topic.trim()}.\n\nOutline:\n1. Starter - ask what pupils already know about ${topic.trim()}.\n2. Teach - explain in small steps with an example on the board.\n3. Guided practice - work through two examples together.\n4. Independent work - pupils try questions on their own.\n5. Plenary - recap the key point of ${topic.trim()}.`,
-        null);
+      title = `Lesson outline: ${topic.trim()} (${cls} - ${subj})`;
+      prompt = `Draft a lesson outline for ${subj}, class ${cls}, on the topic "${topic.trim()}".`;
+      context = `Class: ${cls}. Subject: ${subj}. Topic: ${topic.trim()}.${term ? ` Term: ${term.session} - ${term.name}.` : ""}`;
+      demoContent =
+        `DRAFT - ${AI_NOTE}\n\nLesson: ${topic.trim()} (${cls}, ${subj})\n\nObjectives:\n- Pupils can explain ${topic.trim()} in their own words.\n- Pupils can answer questions on ${topic.trim()}.\n\nOutline:\n1. Starter - ask what pupils already know about ${topic.trim()}.\n2. Teach - explain in small steps with an example on the board.\n3. Guided practice - work through two examples together.\n4. Independent work - pupils try questions on their own.\n5. Plenary - recap the key point of ${topic.trim()}.`;
     } else if (tool === "questions") {
       if (!topic.trim()) { setMsg("Enter a topic first."); return; }
       const n = Math.max(1, Math.min(10, Number(count) || 5));
       const lines = Array.from({ length: n }, (_, i) => `${i + 1}. [Replace with your own question ${i + 1} on ${topic.trim()} - e.g. “What is …?” / “Work out …” / “Explain why …”]`).join("\n");
-      await saveDraft("questions", `Test questions: ${topic.trim()} (${cls} - ${subj})`,
-        `DRAFT - ${AI_NOTE}\n\nTopic: ${topic.trim()} (${cls}, ${subj})\n\n${lines}\n\nMarking: 1 mark each unless you change it. Check every question yourself before giving the test - this draft does not know your syllabus.`,
-        null);
+      title = `Test questions: ${topic.trim()} (${cls} - ${subj})`;
+      prompt = `Write ${n} test questions on "${topic.trim()}" for ${subj}, class ${cls}.`;
+      context = `Class: ${cls}. Subject: ${subj}. Topic: ${topic.trim()}. Number of questions: ${n}.`;
+      demoContent =
+        `DRAFT - ${AI_NOTE}\n\nTopic: ${topic.trim()} (${cls}, ${subj})\n\n${lines}\n\nMarking: 1 mark each unless you change it. Check every question yourself before giving the test - this draft does not know your syllabus.`;
     } else if (tool === "report_comment") {
       if (!pupilId || !term) { setMsg("Pick a pupil - and the school needs a current term."); return; }
       const pupil = pupils.find((p) => p.id === pupilId);
@@ -1483,10 +1507,14 @@ function AiAssistantSection({
       const r = data as { test_score: number | null; assignment_score: number | null; exam_score: number | null } | null;
       const total = (r?.test_score ?? 0) + (r?.assignment_score ?? 0) + (r?.exam_score ?? 0);
       const has = !!r && (r.test_score !== null || r.assignment_score !== null || r.exam_score !== null);
-      await saveDraft("report_comment",
-        `Report comment: ${pupil ? `${pupil.first_name} ${pupil.last_name}` : ""} - ${subj}`,
-        `DRAFT - ${AI_NOTE}\n\n${pupil ? `${pupil.first_name} ${pupil.last_name}` : "Pupil"} - ${subj} (${term.session}, ${term.name})\n\n${has ? `Scores on record: Test ${r?.test_score ?? "-"}/20, Assignment ${r?.assignment_score ?? "-"}/10, Exam ${r?.exam_score ?? "-"}/70. Total ${total}/100 (grade ${gradeFor(total)}). ${pupil?.first_name ?? "They"} ${plainGrade(total)} in ${subj} this term.` : `No scores on record for ${subj} this term yet - save scores first, then generate the comment again.`}\n\nTeacher: edit this comment in your own words before it goes on the report card. The scores themselves are never changed by a draft.`,
-        pupilId);
+      title = `Report comment: ${pupil ? `${pupil.first_name} ${pupil.last_name}` : ""} - ${subj}`;
+      prompt = `Write a report-card comment for ${pupil ? `${pupil.first_name} ${pupil.last_name}` : "this pupil"} in ${subj}, ${term.session} ${term.name}.`;
+      context = has
+        ? `Pupil: ${pupil ? `${pupil.first_name} ${pupil.last_name}` : "Pupil"}. Subject: ${subj}. Term: ${term.session} - ${term.name}. Scores on record: Test ${r?.test_score ?? "-"}/20, Assignment ${r?.assignment_score ?? "-"}/10, Exam ${r?.exam_score ?? "-"}/70. Total ${total}/100 (grade ${gradeFor(total)}).`
+        : `Pupil: ${pupil ? `${pupil.first_name} ${pupil.last_name}` : "Pupil"}. Subject: ${subj}. Term: ${term.session} - ${term.name}. No scores on record for this subject this term yet.`;
+      demoContent =
+        `DRAFT - ${AI_NOTE}\n\n${pupil ? `${pupil.first_name} ${pupil.last_name}` : "Pupil"} - ${subj} (${term.session}, ${term.name})\n\n${has ? `Scores on record: Test ${r?.test_score ?? "-"}/20, Assignment ${r?.assignment_score ?? "-"}/10, Exam ${r?.exam_score ?? "-"}/70. Total ${total}/100 (grade ${gradeFor(total)}). ${pupil?.first_name ?? "They"} ${plainGrade(total)} in ${subj} this term.` : `No scores on record for ${subj} this term yet - save scores first, then generate the comment again.`}\n\nTeacher: edit this comment in your own words before it goes on the report card. The scores themselves are never changed by a draft.`;
+      studentId = pupilId;
     } else {
       // class_summary - from real scores
       if (!term) { setMsg("The school needs a current term first."); return; }
@@ -1501,9 +1529,27 @@ function AiAssistantSection({
       const totals = list.map((r) => (r.test_score ?? 0) + (r.assignment_score ?? 0) + (r.exam_score ?? 0));
       const avg = totals.length > 0 ? totals.reduce((a, b) => a + b, 0) / totals.length : null;
       const passes = totals.filter((t) => t >= 40).length;
-      await saveDraft("class_summary", `Class summary: ${cls} - ${subj} (${term.name})`,
-        `DRAFT - ${AI_NOTE}\n\n${cls} - ${subj}, ${term.session} ${term.name}\n\n${avg === null ? "No scores saved for this class and subject yet." : `${list.length} pupil(s) scored. Class average ${avg.toFixed(1)}/100 (grade ${gradeFor(avg)}). ${passes} of ${list.length} scored 40 or above.`}\n\nNext steps for the teacher to decide: which pupils need extra help, and what to reteach before the next test.`,
-        null);
+      title = `Class summary: ${cls} - ${subj} (${term.name})`;
+      prompt = `Summarise how class ${cls} did in ${subj}, ${term.session} ${term.name}, for their teacher.`;
+      context = avg === null
+        ? `Class: ${cls}. Subject: ${subj}. Term: ${term.session} - ${term.name}. No scores saved for this class and subject yet.`
+        : `Class: ${cls}. Subject: ${subj}. Term: ${term.session} - ${term.name}. ${list.length} pupil(s) scored. Class average ${avg.toFixed(1)}/100 (grade ${gradeFor(avg)}). ${passes} of ${list.length} scored 40 or above.`;
+      demoContent =
+        `DRAFT - ${AI_NOTE}\n\n${cls} - ${subj}, ${term.session} ${term.name}\n\n${avg === null ? "No scores saved for this class and subject yet." : `${list.length} pupil(s) scored. Class average ${avg.toFixed(1)}/100 (grade ${gradeFor(avg)}). ${passes} of ${list.length} scored 40 or above.`}\n\nNext steps for the teacher to decide: which pupils need extra help, and what to reteach before the next test.`;
+    }
+    setBusy(true);
+    try {
+      const ai = await requestAiDraft({ kind: tool, prompt, context });
+      const content =
+        ai.demo === false && ai.text
+          ? `${AI_LIVE_DRAFT_PREFIX}\n\n${ai.text}`
+          : demoContent;
+      await saveDraft(tool, title, content, studentId);
+      if (ai.demo === false && ai.text === null) {
+        setMsg(`${ai.error} Demo draft saved below - review it before using it.`);
+      }
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -1519,7 +1565,7 @@ function AiAssistantSection({
       <Card>
         <h2 className="mb-1 font-semibold">AI Teacher Assistant</h2>
         <p className="mb-3 text-sm text-slate-500">
-          Four drafting tools. Every result is a <strong>draft</strong> - you review and approve it before anyone sees it, and it never changes a grade. {AI_NOTE}
+          Four drafting tools. Every result is a <strong>draft</strong> - you review and approve it before anyone sees it, and it never changes a grade. {aiLive ? AI_LIVE_NOTE : AI_NOTE}
         </p>
         <div className="mb-3 flex flex-wrap gap-2">
           {(Object.keys(toolLabel) as (typeof tool)[]).map((k) => (
@@ -1562,7 +1608,7 @@ function AiAssistantSection({
             </div>
           )}
         </div>
-        <button className={`${btnCls} mt-3`} onClick={generate}>Draft it</button>
+        <button className={`${btnCls} mt-3`} onClick={generate} disabled={busy}>{busy ? "Drafting..." : "Draft it"}</button>
         {msg && <p className="mt-3 text-sm font-medium text-royal">{msg}</p>}
       </Card>
       <Card>
