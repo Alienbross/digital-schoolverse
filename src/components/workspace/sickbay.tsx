@@ -70,8 +70,10 @@ export default function SickbaySection({ schoolId }: { schoolId: string }) {
     }
     setMsg(
       result.notified > 0
-        ? `Event recorded - ${result.notified} parent${result.notified === 1 ? "" : "s"} alerted in-portal.`
-        : "Event recorded - no linked parent with a login to alert in-portal.",
+        ? `Event recorded - ${result.notified} parent${result.notified === 1 ? "" : "s"} alerted in-portal${result.emailed > 0 ? ` and ${result.emailed} emailed` : ""}.`
+        : result.emailed > 0
+          ? `Event recorded - ${result.emailed} parent${result.emailed === 1 ? "" : "s"} emailed (no linked parent with a login to alert in-portal).`
+          : "Event recorded - no linked parent with a login to alert in-portal.",
     );
     if (result.error) setMsg((m) => `${m} ${result.error}`);
     setNote("");
@@ -93,10 +95,10 @@ export default function SickbaySection({ schoolId }: { schoolId: string }) {
       <ConfigBanner />
       <PageHeader
         title="Sickbay Alerts"
-        sub="Record a sickbay visit, a child sent home, or an emergency - the pupil's linked parents are alerted in-portal."
+        sub="Record a sickbay visit, a child sent home, or an emergency - the pupil's linked parents are alerted in-portal and by email when live email is connected."
       />
       <p className="mb-4 text-xs text-slate-500">
-        In-portal alert only. SMS is not connected yet - the SMS plug-in point is in src/lib/sickbay.ts (sendSickbaySms stub).
+        Parents are alerted in-portal, and by email when live email is connected (Resend). SMS is not connected yet - the SMS plug-in point is in src/lib/sickbay.ts (sendSickbaySms stub).
       </p>
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
