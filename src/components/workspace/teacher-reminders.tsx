@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useWorkspaceBase } from "@/lib/slug";
 import { fetchCurrentTerm } from "@/lib/roles";
 import { Card } from "@/components/ui";
+import { sendTeacherDigestEmail } from "@/lib/teacher-digest";
 import {
   countNeedingAttentionToday,
   loadAdminTeacherTaskCounts,
@@ -19,13 +20,22 @@ import {
 
 /** The teacher's reminder list, grouped Overdue / Due today / Due
  *  soon. Each row opens the tab where the job gets done - reminders
- *  never change data themselves. */
+ *  never change data themselves. The email button sends today's
+ *  digest to the teacher via sendTeacherDigestEmail() (Resend);
+ *  with no key configured it reports that plainly and nothing
+ *  changes. There is no scheduler yet - the teacher sends it. */
 export function RemindersList({
   reminders,
   onGo,
+  teacherEmail,
+  teacherName,
+  schoolName,
 }: {
   reminders: TeacherReminder[];
   onGo: (tab: TeacherTabTarget) => void;
+  teacherEmail?: string;
+  teacherName?: string;
+  schoolName?: string;
 }) {
   const groups: { urgency: "overdue" | "today" | "soon"; heading: string }[] = [
     { urgency: "overdue", heading: "Overdue - do these first" },
@@ -33,6 +43,28 @@ export function RemindersList({
     { urgency: "soon", heading: "Due soon" },
   ];
   const needingToday = countNeedingAttentionToday(reminders);
+  const [digestMsg, setDigestMsg] = useState("");
+  const [digestBusy, setDigestBusy] = useState(false);
+
+  const sendDigest = async () => {
+    if (!teacherEmail?.trim() || digestBusy) return;
+    setDigestBusy(true);
+    setDigestMsg("");
+    const result = await sendTeacherDigestEmail({
+      teacherEmail: teacherEmail.trim(),
+      teacherName: teacherName?.trim() || "Teacher",
+      schoolName: schoolName?.trim() || "Digital SchoolVerse",
+      reminders,
+    });
+    setDigestBusy(false);
+    setDigestMsg(
+      result.sent
+        ? `Digest email sent to ${teacherEmail.trim()}.`
+        : result.configured
+          ? "The digest email could not be sent - try again in a moment."
+          : "Live email is not connected yet, so no digest was sent. Your reminders are still listed here.",
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -49,8 +81,19 @@ export function RemindersList({
         <p className="mt-1 text-xs text-slate-500">
           Reminders are worked out from your saved registers, scores, homework, CBT tests, complaints and weekly summaries.
           They never change a grade, a register or a fee - tap one to go and do the job.
-          A daily email version can be switched on later once a live email provider is connected (see Plan &amp; Roadmap).
         </p>
+        {teacherEmail?.trim() && (
+          <div className="mt-3">
+            <button
+              className="rounded-lg border border-line px-4 py-2 text-sm font-semibold"
+              onClick={sendDigest}
+              disabled={digestBusy}
+            >
+              {digestBusy ? "Sending..." : "Email me today's digest"}
+            </button>
+            {digestMsg && <p className="mt-2 text-xs font-medium text-royal">{digestMsg}</p>}
+          </div>
+        )}
       </Card>
       {reminders.length === 0 ? (
         <Card><p className="text-sm text-slate-500">No reminders right now. When a register is not taken, scores are missing, homework or a test comes due, or a complaint assigned to you stays open, it will show up here.</p></Card>
